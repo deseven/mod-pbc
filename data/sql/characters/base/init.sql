@@ -27,7 +27,7 @@ DEALLOCATE PREPARE stmt;
 SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns
     WHERE table_schema = DATABASE() AND table_name = 'mod_pbc_data' AND column_name = 'roll_chance_modifier');
 
-SET @sql = IF(@col_exists = 0,
+SET @sql = IF(@new_exists > 0 AND @col_exists = 0,
     'ALTER TABLE `mod_pbc_data` ADD COLUMN `roll_chance_modifier` INT NOT NULL DEFAULT 0 COMMENT ''Per-character roll chance modifier (-100 to 100), added to every roll chance'' AFTER `last_location`',
     'SELECT ''Skip add column: roll_chance_modifier already exists'' AS status');
 PREPARE stmt FROM @sql;
@@ -38,15 +38,21 @@ DEALLOCATE PREPARE stmt;
 SET @loc_col_exists = (SELECT COUNT(*) FROM information_schema.columns
     WHERE table_schema = DATABASE() AND table_name = 'mod_pbc_data' AND column_name = 'last_location');
 
-SET @sql = IF(@loc_col_exists > 0,
+SET @sql = IF(@new_exists > 0 AND @loc_col_exists > 0,
     'ALTER TABLE `mod_pbc_data` DROP COLUMN `last_location`',
     'SELECT ''Skip drop column: last_location does not exist'' AS status');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- Update the table comment (safe to run always)
-ALTER TABLE `mod_pbc_data` COMMENT='Per-bot persistent data (roll modifier)';
+-- Update the table comment (safe to run always, if table exists)
+SET @sql = IF(@new_exists> 0,
+    'ALTER TABLE `mod_pbc_data` COMMENT = ''Per-bot persistent data (roll modifier)''',
+    'SELECT ''Skipped comment update: mod_pbc_data does not exist'' AS status'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ============================================================
 -- Schema: all tables
