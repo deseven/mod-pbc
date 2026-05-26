@@ -48,7 +48,12 @@ static void HandleChatMessage(Player* sender, uint32 type, const std::string& ra
 {
     if (!g_PBC_Enable) return;
     if (!PBC_PTR_VALID(sender)) return;
-    if (type == CHAT_MSG_AFK || type == CHAT_MSG_DND) return;
+    if (type == CHAT_MSG_AFK || type == CHAT_MSG_DND || type == CHAT_MSG_SYSTEM ||
+        type == CHAT_MSG_MONSTER_SAY || type == CHAT_MSG_MONSTER_YELL ||
+        type == CHAT_MSG_MONSTER_WHISPER || type == CHAT_MSG_MONSTER_EMOTE ||
+        type == CHAT_MSG_MONSTER_PARTY || type == CHAT_MSG_RAID_BOSS_WHISPER ||
+        type == CHAT_MSG_RAID_BOSS_EMOTE)
+        return;
     if (IsBlacklisted(rawMsg)) return;
 
     const std::string msg = PBC_SanitizeChatMessage(rawMsg);
