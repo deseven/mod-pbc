@@ -30,10 +30,10 @@ static const PBC_LocaleMap deDE = {
     { "it's snowing lightly",             "es schneit leicht" },
     { "it's snowing",                     "es schneit" },
     { "it's snowing heavily",             "es schneit stark" },
-    { "there is a light sandstorm",       "es gibt einen leichten Sandsturm" },
-    { "there is a sandstorm",             "es gibt einen Sandsturm" },
-    { "there is a heavy sandstorm",       "es gibt einen schweren Sandsturm" },
-    { "there is a thunderstorm",          "es gibt ein Gewitter" },
+    { "there is a light sandstorm",       "es tobt ein leichter Sandsturm" },
+    { "there is a sandstorm",             "es tobt ein Sandsturm" },
+    { "there is a heavy sandstorm",       "es tobt ein schwerer Sandsturm" },
+    { "there is a thunderstorm",          "es gewittert" },
 
     // ---- Time / weather assembly -------------------------------------
     { "it's ",                            "es ist " },
@@ -64,10 +64,10 @@ static const PBC_LocaleMap deDE = {
     { "Unknown", "Unbekannt" },
 
     // ---- Combat status -----------------------------------------------
-    { "You are not currently in combat.", "Du bist gerade nicht im Kampf." },
+    { "You are not currently in combat.", "Du bist gerade nicht in einem Kampf." },
     // {0} = enemy name
     { "You are currently fighting {0}.",  "Du kämpfst gerade gegen {0}." },
-    { "You are currently in combat.",     "Du bist gerade im Kampf." },
+    { "You are currently in combat.",     "Du bist gerade in einem Kampf." },
 
     // ---- Roles -------------------------------------------------------
     { "tank",         "Tank" },
@@ -265,18 +265,18 @@ static const PBC_LocaleMap deDE = {
     { "epic",       "epischen" },
     { "legendary",  "legendären" },
     { "artifact",   "einzigartigen" },
-    { "heirloom",   "ererbten" },
+    { "heirloom",   "vererbten" },
 
     // ---- Weapon types ------------------------------------------------
-    { "one-handed axe",  "Einhand-Axt" },
-    { "two-handed axe",  "Zweihand-Axt" },
+    { "one-handed axe",  "Einhandaxt" },
+    { "two-handed axe",  "Zweihandaxt" },
     { "bow",             "Bogen" },
     { "gun",             "Gewehr" },
-    { "one-handed mace", "Einhand-Streitkolben" },
-    { "two-handed mace", "Zweihand-Streitkolben" },
+    { "one-handed mace", "Einhandstreitkolben" },
+    { "two-handed mace", "Zweihandstreitkolben" },
     { "polearm",         "Stangenwaffe" },
-    { "one-handed sword","Einhand-Schwert" },
-    { "two-handed sword","Zweihand-Schwert" },
+    { "one-handed sword","Einhandschwert" },
+    { "two-handed sword","Zweihandschwert" },
     { "staff",           "Stab" },
     { "fist weapon",     "Faustwaffe" },
     { "dagger",          "Dolch" },
@@ -308,8 +308,8 @@ static const PBC_LocaleMap deDE = {
 
     // ---- Armor sub-types (shields / relics) --------------------------
     { "buckler", "Faustschild" },
-    { "libram",  "Libram" },
-    { "idol",    "Idol" },
+    { "libram",  "Buchband" },
+    { "idol",    "Götze" },
     { "totem",   "Totem" },
     { "sigil",   "Siegel" },
 
@@ -326,15 +326,15 @@ static const PBC_LocaleMap deDE = {
     { "The party confidently disposed of the enemies.",
       "Die Gruppe hat die Gegner souverän besiegt." },
     { "The party members suffered minor wounds.",
-      "Die Gruppenmitglieder erlitten leichte Wunden." },
+      "Die Gruppenmitglieder erlitten leichte Verletzungen." },
     { "The party members suffered major wounds.",
-      "Die Gruppenmitglieder erlitten schwere Wunden." },
+      "Die Gruppenmitglieder erlitten schwere Verletzungen." },
     { "The party was almost wiped out and barely survived.",
       "Die Gruppe wurde fast ausgelöscht und überlebte nur knapp." },
 
     // ---- Combat enemies section labels -------------------------------
     { "Regular enemies defeated: ",
-      "Besiegte normale Gegner: " },
+      "Besiegte gewöhnliche Gegner: " },
     { "none",
       "keine" },
     { "Significant enemies defeated: ",
@@ -403,29 +403,29 @@ static const PBC_LocaleMap deDE = {
 
     // ---- Level up phrases (pbc_player_scripts.cpp) -------------------
     { " can feel their abilities growing stronger",
-      " spürt, wie ihre Fähigkeiten stärker werden" },
+      " spürt, wie die eigenen Fähigkeiten stärker werden" },
     { " grows more powerful, their skills sharpened by experience",
-      " wird mächtiger, ihre Fertigkeiten durch Erfahrung geschärft" },
+      " wird mächtiger, die eigenen Fertigkeiten wurden durch Erfahrung geschärft" },
     { " has grown stronger through their trials and hardships",
-      " ist durch Prüfungen und Entbehrungen stärker geworden" },
+      " ist durch Herausforderungen und Entbehrungen stärker geworden" },
     { " feels a surge of power as their abilities improve",
-      " fühlt einen Energieschub, als sich ihre Fähigkeiten verbessern" },
+      " fühlt einen Energieschub, als sich die eigenen Fähigkeiten verbessern" },
     { " has become more capable, their experience forging them anew",
-      " ist fähiger geworden, ihre Erfahrung schmiedet sie neu" },
+      " ist fähiger geworden, geprägt durch die eigene Erfahrung" },
     { " grew stronger",
       " wurde stärker" },
     { " became more powerful through experience",
       " wurde durch Erfahrung mächtiger" },
     { " emerged from their trials more capable than before",
-      " ging aus ihren Prüfungen fähiger hervor als zuvor" },
+      " ging aus den bestandenen Prüfungen fähiger hervor als zuvor" },
     { " felt their abilities sharpen and grow",
-      " spürte, wie ihre Fähigkeiten schärfer wurden und wuchsen" },
+      " spürte, wie die eigenen Fähigkeiten wuchsen und sich schärften" },
     { " gained new strength and skill",
       " erlangte neue Stärke und Fertigkeit" },
 
     // ---- Trigger event lines (pbc_event_dispatch.cpp) ----------------
     { "you want to comment on your surroundings",
-      "du möchtest die Umgebung kommentieren" },
+      "du möchtest deine Umgebung kommentieren" },
     { "you want to ask a question",
       "du möchtest eine Frage stellen" },
     { "you want to share something",
@@ -433,7 +433,7 @@ static const PBC_LocaleMap deDE = {
     { "you want to comment on how you feel",
       "du möchtest kommentieren, wie du dich fühlst" },
     { "you feel the urge to comment on the last thing that happened",
-      "du verspürst den Drang, das letzte Geschehene zu kommentieren" },
+      "du verspürst den Drang, das letzte Geschehen zu kommentieren" },
     { "you feel like saying more",
       "du möchtest noch mehr sagen" },
     { "you feel like answering that",
@@ -449,7 +449,7 @@ static const PBC_LocaleMap deDE = {
     // ---- Narrator progress messages (pbc_event_processor.cpp) -----------
     // {0} = character name
     { "Condensing {0}'s history...",
-      "Verdichte den Verlauf von {0}..." },
+      "Fasse den Verlauf von {0} zusammen..." },
     // {0} = character name, {1} = target name
     { "Updating {0}'s relationship with {1}...",
       "Aktualisiere die Beziehung von {0} zu {1}..." },
@@ -465,7 +465,7 @@ static const PBC_LocaleMap deDE = {
     // {0}=quality (accusative masculine), {1}=item type.
     // All four event templates below use accusative so the adjective
     // form is consistent across every event.
-    { "a {0} {1}", "{0} Gegenstand — {1}" },
+    { "a {0} {1}", "einen {0} Gegenstand — {1}" },
 
     // ---- Item found / rewarded (pbc_player_scripts.cpp) --------------
     // {0} = item phrase, {1} = item name
