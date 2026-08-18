@@ -1,5 +1,3 @@
-# Playerbots Characters (PBC)
-
 <p align="center">
   <img src="icon.png" width="160" alt="iCanHazAI">
 </p>
