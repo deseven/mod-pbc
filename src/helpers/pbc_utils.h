@@ -8,7 +8,7 @@
 #include <random>
 
 // ---------------------------------------------------------------------------
-// mod-playerbots-characters shared utility functions
+// mod-pbc shared utility functions
 //
 // Pure string/template helpers and RNG — no game-object dependencies.
 // ---------------------------------------------------------------------------

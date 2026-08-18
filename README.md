@@ -2,12 +2,12 @@
   <img src="icon.png" width="160" alt="iCanHazAI">
 </p>
 
-This is an [AzerothCore](https://www.azerothcore.org) module built around [mod-playerbots](https://github.com/mod-playerbots/mod-playerbots), breathing new life into bots by turning them into true in-game characters — companions with pre-defined personalities, memory, and relationships. Heavily inspired by [mod-ollama-chat](https://github.com/DustinHendrickson/mod-ollama-chat), but taking a different, more complex approach — focusing on the roleplaying experience rather than emulating real WoW players.
+`mod-playerbots-characters` (or `mod-pbc` for short) is an [AzerothCore](https://www.azerothcore.org) module built around [mod-playerbots](https://github.com/mod-playerbots/mod-playerbots), breathing new life into bots by turning them into true in-game characters — companions with pre-defined personalities, memory, and relationships. Heavily inspired by [mod-ollama-chat](https://github.com/DustinHendrickson/mod-ollama-chat), but taking a different, more complex approach — focusing on the roleplaying experience rather than emulating real WoW players.
 
 Think old Bioware games with companions — that's the core idea. The intended use is a fresh start at low rates with a full party of altbots playing alongside you, developing their own stories as you progress through the game together.
 
 > [!IMPORTANT]
-> The module is currently in active development and things could be changing rapidly. Before updating your copy, it's highly recommended to do a database backup, read the changes and notes in [the Releases](https://github.com/deseven/mod-playerbots-characters/releases) and check your server logs after running the newer version. There should be no hard incompatibilities, but new config variables are getting added, existing ones change their defaults, old routines get replaced and so on.
+> The module is currently in active development and things could be changing rapidly. Before updating your copy, it's highly recommended to do a database backup, read the changes and notes in [the Releases](https://github.com/deseven/mod-pbc/releases) and check your server logs after running the newer version. There should be no hard incompatibilities, but new config variables are getting added, existing ones change their defaults, old routines get replaced and so on.
 
 
 ## How It Works
@@ -38,22 +38,22 @@ Clone a specific tagged release:
 
 ```sh
 cd modules
-git clone --depth 1 --branch <tag_name> git@github.com:deseven/mod-playerbots-characters.git
+git clone --depth 1 --branch <tag_name> git@github.com:deseven/mod-pbc.git
 ```
 
 When you want to upgrade to a newer release tag:
 
 ```sh
-cd modules/mod-playerbots-characters
+cd modules/mod-pbc
 git fetch --tags
 git checkout <new_tag_name>
 ```
 
-A list of all available tags can be found on the [Releases](https://github.com/deseven/mod-playerbots-characters/releases) page.
+A list of all available tags can be found on the [Releases](https://github.com/deseven/mod-pbc/releases) page.
 
 ### Method 2: Source code archive
 
-Download a `.zip` or `.tar.gz` source archive from the [Releases](https://github.com/deseven/mod-playerbots-characters/releases) page and extract it into the `modules` directory. The extracted folder must be named `mod-playerbots-characters`.
+Download a `.zip` or `.tar.gz` source archive from the [Releases](https://github.com/deseven/mod-pbc/releases) page and extract it into the `modules` directory. The extracted folder must be named `mod-pbc` or `mod-playerbots-characters` (legacy fallback).
 
 ### Method 3: Latest (bleeding edge)
 
@@ -61,7 +61,7 @@ Clone the repository normally to get the latest changes:
 
 ```sh
 cd modules
-git clone git@github.com:deseven/mod-playerbots-characters.git
+git clone git@github.com:deseven/mod-pbc.git
 ```
 
 This gives you the most recent commits from the `main` branch. You can `git pull` at any time to update.
@@ -122,7 +122,7 @@ Start the server, set up some altbots for yourself or invite existing random bot
 Start playing, chat with your characters, discuss anything you like, build relationships and enjoy the game.
 
 > [!NOTE]
-> Depending on the model you are using, your mileage may vary. Do regular backups with `modules/mod-playerbots-characters/tools/pbc_backup.sh` and adjust things as needed either in the database (followed by `.chars reload` command) or via the included web app. There are also two helper tools (`pbc_info.sh` and `pbc_history.sh`) which might help with tracking what's going on. You can also steer the narration a bit by using `.chars narrate` and `.chars narrate-party` commands. Check out [available commands](docs/COMMANDS.md) for more info.
+> Depending on the model you are using, your mileage may vary. Do regular backups with `modules/mod-pbc/tools/pbc_backup.sh` and adjust things as needed either in the database (followed by `.chars reload` command) or via the included web app. There are also two helper tools (`pbc_info.sh` and `pbc_history.sh`) which might help with tracking what's going on. You can also steer the narration a bit by using `.chars narrate` and `.chars narrate-party` commands. Check out [available commands](docs/COMMANDS.md) for more info.
 
 ### Web App
 
@@ -148,4 +148,4 @@ Two config options control debug output:
 
 ## Support & Contributing
 
-Contributions are welcome — feel free to open a pull request. If you need help or found a bug, [open an issue](https://github.com/deseven/mod-playerbots-characters/issues/new) or [join the Discord](https://discord.gg/YE9KyTXRPt).
+Contributions are welcome — feel free to open a pull request. If you need help or found a bug, [open an issue](https://github.com/deseven/mod-pbc/issues/new) or [join the Discord](https://discord.gg/YE9KyTXRPt).

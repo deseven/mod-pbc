@@ -2,7 +2,7 @@
 
 All prompt templates are loaded from files on disk. This allows the module to ship improved default prompts with every update without requiring users to manually sync their config.
 
-The prompt directory is configured via `PBC.PromptsPath` in the config (default: `../../../modules/mod-playerbots-characters/prompts`).
+The prompt directory is configured via `PBC.PromptsPath` in the config (default: `../../../modules/mod-pbc/prompts`).
 
 
 ## Locale Support

@@ -1,4 +1,4 @@
--- mod-playerbots-characters: initial schema
+-- mod-pbc: initial schema
 -- Creates all required tables if they do not already exist.
 -- Also handles migration from legacy table formats.
 

@@ -17,7 +17,7 @@ Example templates for each supported API type (and a couple of tested providers)
 These `.example` files are read-only templates — **do not edit them directly**. To set up a connection, pick the example that matches your provider and copy it to a new file **without** the `.example` suffix:
 
 ```sh
-cd modules/mod-playerbots-characters/connections
+cd modules/mod-pbc/connections
 cp openai.jsonc.example my-connection.jsonc
 ```
 

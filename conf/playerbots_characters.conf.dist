@@ -1,7 +1,7 @@
 [worldserver]
 
 #########################################
-# mod-playerbots-characters configuration
+# mod-pbc configuration
 #########################################
 
 # --------------------------------------------
@@ -49,7 +49,7 @@ PBC.DisplayNarratorEvents = 1
 # Each connection is defined in a standalone JSONC file (JSON with comments).
 # Copy one of the *.jsonc.example templates from the connections/ directory
 # (without the .example suffix), fill it in, and point the options below at it.
-# See modules/mod-playerbots-characters/docs/CONNECTIONS.md for the full guide.
+# See modules/mod-pbc/docs/CONNECTIONS.md for the full guide.
 # Paths are relative to the server working directory (env/dist/bin/).
 
 # PBC.DefaultConnection
@@ -58,7 +58,7 @@ PBC.DisplayNarratorEvents = 1
 #                  connection defined below.
 #                  REQUIRED. The module will be disabled if missing or invalid.
 #     Default:     empty
-PBC.DefaultConnection = ../../../modules/mod-playerbots-characters/connections/my-connection.jsonc
+PBC.DefaultConnection = ../../../modules/mod-pbc/connections/my-connection.jsonc
 
 # PBC.UtilityConnection
 #     Description: Path to the connection file used for utility requests
@@ -111,16 +111,16 @@ PBC.MaxMemoriesCtx = 8192
 #                  To customize a prompt, create a .custom.txt version of it in the
 #                  locale directory — it will be loaded instead of .default.txt.
 #                  REQUIRED. The module will be disabled if prompts fail to load.
-#     Default:     ../../../modules/mod-playerbots-characters/prompts
-PBC.PromptsPath = ../../../modules/mod-playerbots-characters/prompts
+#     Default:     ../../../modules/mod-pbc/prompts
+PBC.PromptsPath = ../../../modules/mod-pbc/prompts
 
 # PBC.CharacterCardsPath
 #     Description: Path to the directory containing character cards.
 #                  This should be a relative path from the server's working directory.
 #                  The module will load all .card.txt files from this directory and
 #                  apply them to the needed characters.
-#     Default:     ../../../modules/mod-playerbots-characters/characters
-PBC.CharacterCardsPath = ../../../modules/mod-playerbots-characters/characters
+#     Default:     ../../../modules/mod-pbc/characters
+PBC.CharacterCardsPath = ../../../modules/mod-pbc/characters
 
 # --------------------------------------------
 # REPLY CHANCES
@@ -276,8 +276,8 @@ PBC.HttpServerPrivateKey =
 #                  (typically env/dist/bin/). The HTTP server will serve these files
 #                  for all non-API, non-WebSocket GET requests. GET / serves index.html.
 #                  Leave empty to disable frontend serving.
-#     Default:     ../../../modules/mod-playerbots-characters/frontend/dist
-PBC.HttpServerFrontendPath = ../../../modules/mod-playerbots-characters/frontend/dist
+#     Default:     ../../../modules/mod-pbc/frontend/dist
+PBC.HttpServerFrontendPath = ../../../modules/mod-pbc/frontend/dist
 
 
 # --------------------------------------------

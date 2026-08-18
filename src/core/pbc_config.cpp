@@ -48,8 +48,8 @@ std::string g_PBC_CharacterContext;
 std::string g_PBC_RelationshipUpdateSystemPrompt;
 std::string g_PBC_RelationshipUpdateUserPrompt;
 
-std::string g_PBC_PromptsPath = "../../../modules/mod-playerbots-characters/prompts";
-std::string g_PBC_CharacterCardsPath = "../../../modules/mod-playerbots-characters/characters";
+std::string g_PBC_PromptsPath = "../../../modules/mod-pbc/prompts";
+std::string g_PBC_CharacterCardsPath = "../../../modules/mod-pbc/characters";
 
 uint32_t g_PBC_ReplyChanceWhisper   = 100;
 uint32_t g_PBC_ReplyChanceMention   = 100;
@@ -83,7 +83,7 @@ std::string g_PBC_HttpServerBind            = "127.0.0.1";
 int         g_PBC_HttpServerTimeout         = 15;
 std::string g_PBC_HttpServerBaseUrl         = "http://127.0.0.1:8501";
 std::string g_PBC_HttpServerPrivateKey;
-std::string g_PBC_HttpServerFrontendPath    = "../../../modules/mod-playerbots-characters/frontend/dist";
+std::string g_PBC_HttpServerFrontendPath    = "../../../modules/mod-pbc/frontend/dist";
 
 std::queue<PBC_PendingAction> g_PBC_PendingActions;
 std::mutex                    g_PBC_PendingActionsMutex;
@@ -453,9 +453,9 @@ void PBC_LoadConfig(bool /*isStartup*/)
     g_PBC_MaxMemoriesCtx             = sConfigMgr->GetOption<uint32_t>("PBC.MaxMemoriesCtx", 8192);
 
     g_PBC_PromptsPath = sConfigMgr->GetOption<std::string>("PBC.PromptsPath",
-                                    "../../../modules/mod-playerbots-characters/prompts");
+                                    "../../../modules/mod-pbc/prompts");
     g_PBC_CharacterCardsPath  = sConfigMgr->GetOption<std::string>("PBC.CharacterCardsPath",
-                                    "../../../modules/mod-playerbots-characters/characters");
+                                    "../../../modules/mod-pbc/characters");
 
     g_PBC_ReplyChanceWhisper   = sConfigMgr->GetOption<uint32_t>("PBC.ReplyChanceWhisper", 100);
     g_PBC_ReplyChanceMention   = sConfigMgr->GetOption<uint32_t>("PBC.ReplyChanceMention", 100);
@@ -483,7 +483,7 @@ void PBC_LoadConfig(bool /*isStartup*/)
     g_PBC_HttpServerBaseUrl      = sConfigMgr->GetOption<std::string>("PBC.HttpServerBaseUrl", "http://127.0.0.1:8501");
     g_PBC_HttpServerPrivateKey   = sConfigMgr->GetOption<std::string>("PBC.HttpServerPrivateKey", "");
     g_PBC_HttpServerFrontendPath = sConfigMgr->GetOption<std::string>("PBC.HttpServerFrontendPath",
-                                                                       "../../../modules/mod-playerbots-characters/frontend/dist");
+                                                                       "../../../modules/mod-pbc/frontend/dist");
 
     if (g_PBC_Enable)
     {

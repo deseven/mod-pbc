@@ -4,7 +4,7 @@
 // ---------------------------------------------------------------------------
 // Bundled nlohmann/json isolation wrapper
 // ---------------------------------------------------------------------------
-// mod-playerbots-characters ships its own copy of nlohmann/json (v3.12.0-main) to
+// mod-pbc ships its own copy of nlohmann/json (v3.12.0-main) to
 // guarantee a fixed feature set. Because the library is header-only, simply
 // including it alongside another module that bundles a different version
 // (e.g. ollama-chat) reopens the same `nlohmann` namespace and causes ODR /
