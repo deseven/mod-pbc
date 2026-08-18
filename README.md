@@ -1,5 +1,9 @@
 # Playerbots Characters (PBC)
 
+<p align="center">
+  <img src="icon.png" width="160" alt="iCanHazAI">
+</p>
+
 This is an [AzerothCore](https://www.azerothcore.org) module built around [mod-playerbots](https://github.com/mod-playerbots/mod-playerbots), breathing new life into bots by turning them into true in-game characters — companions with pre-defined personalities, memory, and relationships. Heavily inspired by [mod-ollama-chat](https://github.com/DustinHendrickson/mod-ollama-chat), but taking a different, more complex approach — focusing on the roleplaying experience rather than emulating real WoW players.
 
 Think old Bioware games with companions — that's the core idea. The intended use is a fresh start at low rates with a full party of altbots playing alongside you, developing their own stories as you progress through the game together.
@@ -146,4 +150,4 @@ Two config options control debug output:
 
 ## Support & Contributing
 
-Contributions are welcome — feel free to open a pull request. If you need help or found a bug, [open an issue](https://github.com/deseven/mod-playerbots-characters/issues/new).
+Contributions are welcome — feel free to open a pull request. If you need help or found a bug, [open an issue](https://github.com/deseven/mod-playerbots-characters/issues/new) or [join the Discord](https://discord.gg/YE9KyTXRPt).
