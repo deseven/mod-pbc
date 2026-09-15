@@ -29,6 +29,7 @@ bool     g_PBC_Enable              = true;
 bool     g_PBC_DebugEnabled        = false;
 bool     g_PBC_DebugShowFullRequest = false;
 bool     g_PBC_DisplayNarratorEvents = true;
+bool     g_PBC_EnableGuildChat = true;
 bool     g_PBC_CardAdditionsMigrationNeeded = false;
 
 // Connection registry
@@ -448,6 +449,7 @@ void PBC_LoadConfig(bool /*isStartup*/)
     g_PBC_DebugEnabled        = sConfigMgr->GetOption<bool>("PBC.DebugEnabled", false);
     g_PBC_DebugShowFullRequest = sConfigMgr->GetOption<bool>("PBC.DebugShowFullRequest", false);
     g_PBC_DisplayNarratorEvents = sConfigMgr->GetOption<bool>("PBC.DisplayNarratorEvents", true);
+    g_PBC_EnableGuildChat       = sConfigMgr->GetOption<bool>("PBC.EnableGuildChat", true);
 
     g_PBC_MaxHistoryCtx              = sConfigMgr->GetOption<uint32_t>("PBC.MaxHistoryCtx", 0);
     g_PBC_MaxMemoriesCtx             = sConfigMgr->GetOption<uint32_t>("PBC.MaxMemoriesCtx", 8192);

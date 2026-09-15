@@ -13,6 +13,14 @@
 #     Default:     1 (true)
 PBC.Enable = 1
 
+# PBC.EnableGuildChat
+#     Description: Enable or disable the guild chat feature. When enabled,
+#                  bot guildmates can hear guild chat and reply to it (LLM).
+#                  When disabled, guild chat is ignored entirely and bots
+#                  never respond in the guild channel.
+#     Default:     1 (true)
+PBC.EnableGuildChat = 1
+
 # PBC.DebugEnabled
 #     Description: Enables DEBUG-level log messages.
 #                  When set to 1 (true), detailed event tracking, LLM request info, and

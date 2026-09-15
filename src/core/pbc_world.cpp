@@ -14,6 +14,7 @@
 #include "Player.h"
 #include "Group.h"
 #include "Chat.h"
+#include "GuildMgr.h"
 #include "WorldSession.h"
 #include "WorldSessionMgr.h"
 #include "SharedDefines.h"
@@ -419,6 +420,20 @@ void PBC_WorldScript::OnUpdate(uint32_t diff)
                     else if (ct == CHAT_MSG_YELL)
                     {
                         bot->Yell(action.text, LANG_UNIVERSAL);
+                    }
+                    else if (ct == CHAT_MSG_GUILD)
+                    {
+                        if (bot->GetGuildId())
+                        {
+                            WorldPacket data;
+                            ChatHandler::BuildChatPacket(data, CHAT_MSG_GUILD, LANG_UNIVERSAL, bot, nullptr, action.text);
+                            if (Guild* botGuild = sGuildMgr->GetGuildById(bot->GetGuildId()))
+                                botGuild->BroadcastPacket(&data);
+                        }
+                        else
+                        {
+                            bot->Say(action.text, LANG_UNIVERSAL);
+                        }
                     }
                     else
                     {
