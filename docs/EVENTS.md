@@ -6,6 +6,8 @@ Events are in-game occurrences that characters may react to. When an event fires
 |---|---|---|
 | **Whisper received** | A character receives a private whisper from another player. | `John tells you privately: How are you doing?` |
 | **Chat message received** | A character hears a say, yell, or group message. If the message **mentions** specific characters by name, those characters roll at `ReplyChanceMention`; non-mentioned bystanders roll at a reduced chance. | `John says: It was a nice fight, huh?` |
+| **Guild chat received** | A character hears a guild chat message. Mention-aware rolling works the same way as regular chat messages; can be disabled via `EnableGuildChat`. | `John says in guild chat: Anyone up for SM?` |
+| **Guild chat received** | A character hears a guild chat message. Mention-aware rolling works the same way as regular chat messages; can be disabled via `EnableGuildChat`. | `John says in guild chat: Anyone up for SM?` |
 | **Party found item** | A party member acquires a rare (blue) or higher weapon or armor — via loot, quest reward, or group roll. Quest rewards are tracked for the party leader only to avoid duplicates (the whole party receives the same item). | `*The party has found a legendary two-handed mace named Bane of the Damned*` |
 | **Character won duel** | A party member wins a duel. | `*John just won the duel against Joe*` |
 | **Character leveled up** | A party member reaches every 5th level (5, 10, 15 …). Other level-ups are ignored. | `*John can feel their abilities growing stronger*` |

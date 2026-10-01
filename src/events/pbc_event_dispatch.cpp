@@ -17,6 +17,9 @@
 #include <algorithm>
 #include <random>
 #include <unordered_set>
+#include "WorldSessionMgr.h"
+#include "GuildMgr.h"
+#include "Guild.h"
 
 // ---------------------------------------------------------------------------
 // Narrator formatting helpers
@@ -264,6 +267,84 @@ void PBC_RollBotsForMessage(PBC_EventItem& ev,
         std::shuffle(shuffledBots.begin(), shuffledBots.end(), PBC_GetRNG());
         PBC_RollBotsWithPenalty(ev, shuffledBots, g_PBC_ReplyChanceMessage, "message");
     }
+}
+
+
+// ---------------------------------------------------------------------------
+// PBC_DispatchGuildMessageEvent
+// Dispatch a guild chat message event from a real player to same-guild bots.
+// Audience: every online bot in the world that shares the sender's guild id.
+// ---------------------------------------------------------------------------
+void PBC_DispatchGuildMessageEvent(Player* sender, const std::string& msg)
+{
+    if (!PBC_PTR_VALID(sender)) return;
+
+    uint32_t guildId = sender->GetGuildId();
+    if (!guildId) return;
+
+    std::string senderName = sender->GetName();
+    std::string eventLine   = PBC_Localize("{0} says in guild chat: {1}", senderName, msg);
+
+    // Collect all online bots sharing the sender's guild.
+    // NOTE: bot sessions are NOT registered in the WorldSessionMgr session
+    // map (only real client logins go through AddSession), so iterating
+    // GetAllSessions() finds no bots. Use Guild::BroadcastWorker over the
+    // guild roster instead: it resolves every online member to a Player*.
+    std::vector<Player*> bots;
+    if (Guild* guild = sGuildMgr->GetGuildById(guildId))
+    {
+        auto collectBots = [&](Player* p)
+        {
+            if (!PBC_PTR_VALID(p) || p == sender) return;
+            if (!p->IsInWorld()) return;
+            if (!p->GetSession() || !p->GetSession()->IsBot()) return;
+            bots.push_back(p);
+        };
+        guild->BroadcastWorker(collectBots);
+    }
+
+    if (bots.empty())
+    {
+        PBC_Log(PBC_LogLevel::PBC_DEBUG, "Guild chat from {} -> no bot guildmates online", senderName);
+        return;
+    }
+
+    PBC_Log(PBC_LogLevel::PBC_DEBUG, "Guild chat from {} -> {} bot guildmates",
+             senderName, bots.size());
+
+    PBC_EventItem ev;
+    ev.type               = PBC_EventType::Normal;
+    ev.eventLine          = eventLine;
+    ev.source.senderGuid  = sender->GetGUID().GetCounter();
+    ev.source.senderName  = senderName;
+    ev.source.message     = msg;
+    ev.chatType           = CHAT_MSG_GUILD;
+    ev.canCreateEvents    = true;
+
+    // Record the real player who triggered this event (for regen logging).
+    {
+        WorldSession* senderSess = sender->GetSession();
+        if (PBC_PTR_VALID(senderSess) && !senderSess->IsBot())
+            ev.regenRequesterGuid = sender->GetGUID().GetCounter();
+    }
+
+    // Mention-aware roll over the guild audience (mention chance first).
+    PBC_RollBotsForMessage(ev, bots, msg);
+
+    // All real (non-bot) online guildmates receive the history passively.
+    if (Guild* guild = sGuildMgr->GetGuildById(guildId))
+    {
+        auto collectReal = [&](Player* p)
+        {
+            if (!PBC_PTR_VALID(p)) return;
+            if (!p->GetSession() || p->GetSession()->IsBot()) return;
+            ev.silentCharGuids.push_back(p->GetGUID().GetCounter());
+            ev.playerCharGuids.push_back(p->GetGUID().GetCounter());
+        };
+        guild->BroadcastWorker(collectReal);
+    }
+
+    PBC_PushEvent(std::move(ev));
 }
 
 // ---------------------------------------------------------------------------

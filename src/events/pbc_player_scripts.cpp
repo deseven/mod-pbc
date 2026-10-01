@@ -81,6 +81,13 @@ static void HandleChatMessage(Player* sender, uint32 type, uint32 lang,
                         type == CHAT_MSG_RAID  || type == CHAT_MSG_RAID_LEADER  ||
                         type == CHAT_MSG_RAID_WARNING);
 
+    // --- Guild chat ---
+    if (type == CHAT_MSG_GUILD && g_PBC_EnableGuildChat)
+    {
+        PBC_DispatchGuildMessageEvent(sender, msg);
+        return;
+    }
+
     PBC_DispatchPartyMessageEvent(sender, msg, "", type, isGroupChat);
 }
 
@@ -93,6 +100,7 @@ PBC_PlayerEvents::PBC_PlayerEvents() : PlayerScript("PBC_PlayerEvents",
     PLAYERHOOK_CAN_PLAYER_USE_CHAT,
     PLAYERHOOK_CAN_PLAYER_USE_PRIVATE_CHAT,
     PLAYERHOOK_CAN_PLAYER_USE_GROUP_CHAT,
+    PLAYERHOOK_CAN_PLAYER_USE_GUILD_CHAT,
     PLAYERHOOK_ON_LOGIN,
     PLAYERHOOK_ON_LOGOUT,
     PLAYERHOOK_ON_LOOT_ITEM,
@@ -121,6 +129,13 @@ bool PBC_PlayerEvents::OnPlayerCanUseChat(Player* player, uint32 type, uint32 la
 
 bool PBC_PlayerEvents::OnPlayerCanUseChat(Player* player, uint32 type, uint32 lang,
                                           std::string& msg, Group* /*group*/)
+{
+    HandleChatMessage(player, type, lang, msg);
+    return true;
+}
+
+bool PBC_PlayerEvents::OnPlayerCanUseChat(Player* player, uint32 type, uint32 lang,
+                                          std::string& msg, Guild* /*guild*/)
 {
     HandleChatMessage(player, type, lang, msg);
     return true;

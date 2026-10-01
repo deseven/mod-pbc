@@ -121,6 +121,13 @@ void PBC_DispatchPartyMessageEvent(Player* sender, const std::string& msg,
                                     bool canCreateEvents = true);
 
 // ---------------------------------------------------------------------------
+// Dispatch a guild chat message event from a real player to same-guild bots.
+// Finds all online bot guildmates, rolls chances (mention-aware), pushes
+// PBC_EventItem with chatType = CHAT_MSG_GUILD.
+// ---------------------------------------------------------------------------
+void PBC_DispatchGuildMessageEvent(Player* sender, const std::string& msg);
+
+// ---------------------------------------------------------------------------
 // Adds all real (non-bot) players in the anchor's group (including the anchor
 // itself if it's a real player) to the event's silentCharGuids and
 // playerCharGuids.  This ensures player characters receive history passively
