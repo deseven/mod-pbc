@@ -1,6 +1,7 @@
 #include "pbc_poll.h"
 #include "pbc_config.h"
 #include "pbc_utils.h"
+#include "pbc_bot_helpers.h"
 #include "pbc_locales.h"
 #include "pbc_event_dispatch.h"
 #include "pbc_group_helpers.h"
@@ -70,7 +71,7 @@ void PBC_TrackGroupKill(Player* killer, Creature* killed)
         if (!m || !m->IsInWorld()) continue;
         WorldSession* ms = m->GetSession();
         if (!PBC_PTR_VALID(ms)) continue;
-        if (ms->IsBot()) hasBot = true; else hasReal = true;
+        if (PBC_IsBotSession(ms)) hasBot = true; else hasReal = true;
     }
     if (!hasReal || !hasBot) return;
 
@@ -142,7 +143,7 @@ void PBC_PollPartyState()
             if (!member || !member->IsInWorld()) continue;
             WorldSession* ms = member->GetSession();
             if (!PBC_PTR_VALID(ms)) continue;
-            if (ms->IsBot())
+            if (PBC_IsBotSession(ms))
                 hasBot = true;
             else
                 hasReal = true;
@@ -168,7 +169,7 @@ void PBC_PollPartyState()
                 continue;
 
             WorldSession* ms = member->GetSession();
-            if (PBC_PTR_VALID(ms) && ms->IsBot())
+            if (PBC_IsBotSession(ms))
                 info.bots.push_back(member);
 
             bool inFlight = member->IsInFlight();

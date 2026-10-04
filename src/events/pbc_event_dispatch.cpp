@@ -4,6 +4,7 @@
 #include "pbc_utils.h"
 #include "pbc_locales.h"
 #include "pbc_group_helpers.h"
+#include "pbc_bot_helpers.h"
 #include "pbc_log.h"
 
 #include "Player.h"
@@ -45,7 +46,7 @@ void PBC_NotifyRealPlayersInGroup(Player* anchor, const std::string& eventLine)
     {
         if (!PBC_PTR_VALID(p) || !p->IsInWorld()) return;
         WorldSession* sess = p->GetSession();
-        if (!PBC_PTR_VALID(sess) || sess->IsBot()) return;
+        if (!PBC_IsRealPlayerSession(sess)) return;
         ChatHandler(sess).SendSysMessage(eventLine);
     };
 
@@ -88,7 +89,7 @@ void AddTrackedPlayersToEvent(PBC_EventItem& ev, Player* anchor, bool subGroupOn
     }
 
     WorldSession* anchorSess = anchor->GetSession();
-    if (PBC_PTR_VALID(anchorSess) && !anchorSess->IsBot())
+    if (PBC_IsRealPlayerSession(anchorSess))
     {
         uint64_t guid = anchor->GetGUID().GetCounter();
         if (std::find(ev.playerCharGuids.begin(), ev.playerCharGuids.end(), guid) == ev.playerCharGuids.end())
@@ -109,8 +110,8 @@ void PBC_DispatchGroupEvent(Player* anchor, const std::string& eventLine,
     if (!PBC_PTR_VALID(anchor)) return;
 
     WorldSession* anchorSess = anchor->GetSession();
-    bool anchorIsReal = PBC_PTR_VALID(anchorSess) && !anchorSess->IsBot();
-    bool anchorIsBot  = PBC_PTR_VALID(anchorSess) && anchorSess->IsBot();
+    bool anchorIsReal = PBC_IsRealPlayerSession(anchorSess);
+    bool anchorIsBot  = PBC_IsBotSession(anchorSess);
 
     if (!anchorIsReal && !PBC_BotIsGroupedWithRealPlayer(anchor))
     {
@@ -295,7 +296,7 @@ void PBC_DispatchWhisperEvent(Player* sender, Player* target, const std::string&
     // Record the real player who triggered this event (for regen logging).
     {
         WorldSession* senderSess = sender->GetSession();
-        if (PBC_PTR_VALID(senderSess) && !senderSess->IsBot())
+        if (PBC_IsRealPlayerSession(senderSess))
             ev.regenRequesterGuid = sender->GetGUID().GetCounter();
     }
 
@@ -313,7 +314,7 @@ void PBC_DispatchWhisperEvent(Player* sender, Player* target, const std::string&
 
     {
         WorldSession* senderSess = sender->GetSession();
-        if (PBC_PTR_VALID(senderSess) && !senderSess->IsBot())
+        if (PBC_IsRealPlayerSession(senderSess))
         {
             uint64_t senderGuid = sender->GetGUID().GetCounter();
             ev.playerCharGuids.push_back(senderGuid);
@@ -531,7 +532,7 @@ void PBC_DispatchPartyMessageEvent(Player* sender, const std::string& msg,
     // Record the real player who triggered this event (for regen logging).
     {
         WorldSession* senderSess = sender->GetSession();
-        if (PBC_PTR_VALID(senderSess) && !senderSess->IsBot())
+        if (PBC_IsRealPlayerSession(senderSess))
             ev.regenRequesterGuid = sender->GetGUID().GetCounter();
     }
 

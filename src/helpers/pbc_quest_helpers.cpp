@@ -1,5 +1,6 @@
 #include "pbc_quest_helpers.h"
 #include "pbc_utils.h"
+#include "pbc_bot_helpers.h"
 #include "pbc_locales.h"
 #include "pbc_group_helpers.h"
 #include "pbc_config.h"
@@ -351,7 +352,7 @@ bool PBC_QuestEventGuard(Player* player)
     if (grp->GetLeaderGUID() != player->GetGUID()) return false;
 
     WorldSession* sess = player->GetSession();
-    bool leaderIsReal = PBC_PTR_VALID(sess) && !sess->IsBot();
+    bool leaderIsReal = PBC_IsRealPlayerSession(sess);
     if (!leaderIsReal && !PBC_BotIsGroupedWithRealPlayer(player)) return false;
 
     return true;

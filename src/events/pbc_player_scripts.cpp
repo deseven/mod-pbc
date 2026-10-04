@@ -5,6 +5,7 @@
 #include "pbc_utils.h"
 #include "pbc_locales.h"
 #include "pbc_item_helpers.h"
+#include "pbc_bot_helpers.h"
 #include "pbc_quest_helpers.h"
 #include "pbc_group_helpers.h"
 #include "pbc_event_dispatch.h"
@@ -62,9 +63,7 @@ static void HandleChatMessage(Player* sender, uint32 type, uint32 lang,
     // --- Whisper path ---
     if (type == CHAT_MSG_WHISPER)
     {
-        if (!PBC_PTR_VALID(whisperTarget)
-            || !whisperTarget->GetSession()
-            || !whisperTarget->GetSession()->IsBot())
+        if (!PBC_IsBot(whisperTarget))
             return;
 
         PBC_DispatchWhisperEvent(sender, whisperTarget, msg);
@@ -72,7 +71,7 @@ static void HandleChatMessage(Player* sender, uint32 type, uint32 lang,
     }
 
     // --- Say / Yell / Group / Raid ---
-    bool senderIsBot = sender->GetSession() && sender->GetSession()->IsBot();
+    bool senderIsBot = PBC_IsBot(sender);
 
     if (senderIsBot)
         return;

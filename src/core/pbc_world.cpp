@@ -8,6 +8,7 @@
 #include "pbc_database.h"
 #include "pbc_http.h"
 #include "pbc_utils.h"
+#include "pbc_bot_helpers.h"
 #include "pbc_wmo_areas.h"
 #include "pbc_log.h"
 #include "ObjectAccessor.h"
@@ -127,7 +128,7 @@ void PBC_WorldScript::OnUpdate(uint32_t diff)
                 if (!player || !player->IsInWorld()) continue;
 
                 WorldSession* sess = player->GetSession();
-                if (!PBC_PTR_VALID(sess) || sess->IsBot()) continue;
+                if (!PBC_IsRealPlayerSession(sess)) continue;
 
                 uint64_t playerGuid = player->GetGUID().GetCounter();
                 int histTokens = PBC_EstimateHistoryTokens(playerGuid);
@@ -258,7 +259,7 @@ void PBC_WorldScript::OnUpdate(uint32_t diff)
             }
 
             WorldSession* ts = target->GetSession();
-            if (!ts || !ts->IsBot())
+            if (!PBC_IsBotSession(ts))
             {
                 PBC_Log(PBC_LogLevel::PBC_DEBUG, "API whisper: target is not a character, skipping");
                 localWhispers.pop();
@@ -324,7 +325,7 @@ void PBC_WorldScript::OnUpdate(uint32_t diff)
             }
 
             // Allow triggering bot characters and the player's own character.
-            bool isBot = ts->IsBot();
+            bool isBot = PBC_IsBotSession(ts);
 
             if (!isBot)
             {
