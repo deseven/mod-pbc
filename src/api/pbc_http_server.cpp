@@ -335,6 +335,22 @@ bool PBC_HttpServerStart(const std::string& bindAddr, int port, int timeoutSec)
         auto svr = std::make_unique<httplib::Server>();
 
         // -------------------------------------------------------------------
+        // Post-routing handler: prevent caching of API responses
+        //
+        // API responses reflect live, per-account state and must never be
+        // cached by the browser or any intermediary proxy.  Static frontend
+        // assets are intentionally left cacheable.
+        // -------------------------------------------------------------------
+        svr->set_post_routing_handler([](const httplib::Request& req, httplib::Response& res) {
+            if (req.path == "/api" || req.path.rfind("/api/", 0) == 0)
+            {
+                res.set_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+                res.set_header("Pragma", "no-cache");
+                res.set_header("Expires", "0");
+            }
+        });
+
+        // -------------------------------------------------------------------
         // Pre-routing handler: WebSocket authorization
         // -------------------------------------------------------------------
         svr->set_pre_routing_handler([](const httplib::Request& req, httplib::Response& res)
