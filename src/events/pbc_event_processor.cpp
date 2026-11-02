@@ -106,6 +106,7 @@ void PushReplySegments(const PBC_CharacterSnapshot& snap,
             narrAction.charGuid          = snap.charObjGuid;
             narrAction.text              = seg.text;
             narrAction.isNarratorMessage = true;
+            narrAction.fromGuildChannel  = (ev.chatType == CHAT_MSG_GUILD);
 
             std::lock_guard<std::mutex> lock(g_PBC_PendingActionsMutex);
             g_PBC_PendingActions.push(std::move(narrAction));
@@ -128,7 +129,8 @@ void PushReplySegments(const PBC_CharacterSnapshot& snap,
 // PBC_PushNarratorSummary
 // ===========================================================================
 
-void PBC_PushNarratorSummary(const ObjectGuid& anchorObjGuid, const std::string& eventLine)
+void PBC_PushNarratorSummary(const ObjectGuid& anchorObjGuid, const std::string& eventLine,
+                             bool fromGuildChannel)
 {
     if (g_PBC_DisplayNarratorEvents && !anchorObjGuid.IsEmpty())
     {
@@ -136,6 +138,7 @@ void PBC_PushNarratorSummary(const ObjectGuid& anchorObjGuid, const std::string&
         narrAction.charGuid          = anchorObjGuid;
         narrAction.text              = eventLine;
         narrAction.isNarratorMessage = true;
+        narrAction.fromGuildChannel  = fromGuildChannel;
 
         std::lock_guard<std::mutex> lock(g_PBC_PendingActionsMutex);
         g_PBC_PendingActions.push(std::move(narrAction));
@@ -162,7 +165,8 @@ void ProcessCondensation(PBC_EventItem& ev,
 {
     // Notify real players that a lengthy background condensation is starting
     PBC_PushNarratorSummary(ev.condensationChar.charObjGuid,
-        PBC_MakeEventLine(PBC_Localize("Condensing {0}'s history...", ev.condensationChar.charName)));
+        PBC_MakeEventLine(PBC_Localize("Condensing {0}'s history...", ev.condensationChar.charName)),
+        ev.chatType == CHAT_MSG_GUILD);
 
     // Capture the full history snapshot BEFORE condensation truncates it
     std::deque<std::string> preCondensationHistory = ev.condensationChar.history;
@@ -200,7 +204,8 @@ void ProcessRelationshipUpdate(PBC_EventItem& ev)
 
     // Notify real players that a lengthy background relationship update is starting
     PBC_PushNarratorSummary(ev.relationshipChar.charObjGuid,
-        PBC_MakeEventLine(PBC_Localize("Updating {0}'s relationship with {1}...", ev.relationshipChar.charName, ev.relationshipTargetName)));
+        PBC_MakeEventLine(PBC_Localize("Updating {0}'s relationship with {1}...", ev.relationshipChar.charName, ev.relationshipTargetName)),
+        ev.chatType == CHAT_MSG_GUILD);
 
     PBC_Log(PBC_LogLevel::PBC_DEBUG, "RelationshipUpdate: character={} target={}",
              ev.relationshipChar.charName, ev.relationshipTargetName);
@@ -352,7 +357,7 @@ void ProcessCombatSummarization(PBC_EventItem& ev)
     ev.eventLine = PBC_MakeEventLine(summary.text);
     ev.source.narratorText = summary.text;
 
-    PBC_PushNarratorSummary(ev.anchorObjGuid, ev.eventLine);
+    PBC_PushNarratorSummary(ev.anchorObjGuid, ev.eventLine, ev.chatType == CHAT_MSG_GUILD);
 }
 
 void ProcessQuestSummarization(PBC_EventItem& ev)
@@ -376,7 +381,7 @@ void ProcessQuestSummarization(PBC_EventItem& ev)
     ev.eventLine = PBC_MakeEventLine(summary.text);
     ev.source.narratorText = summary.text;
 
-    PBC_PushNarratorSummary(ev.anchorObjGuid, ev.eventLine);
+    PBC_PushNarratorSummary(ev.anchorObjGuid, ev.eventLine, ev.chatType == CHAT_MSG_GUILD);
 }
 
 struct PendingReply {
@@ -476,6 +481,7 @@ void ProcessNormal(PBC_EventItem& ev,
             action.charGuid          = snap.charObjGuid;
             action.text              = PBC_MakeEventLine(PBC_Localize("{0} thinks...", snap.charName));
             action.isNarratorMessage = true;
+            action.fromGuildChannel  = (ev.chatType == CHAT_MSG_GUILD);
 
             std::lock_guard<std::mutex> lock(g_PBC_PendingActionsMutex);
             g_PBC_PendingActions.push(std::move(action));
@@ -487,7 +493,8 @@ void ProcessNormal(PBC_EventItem& ev,
         if (histTokens > static_cast<int>(g_PBC_MaxHistoryCtx))
         {
             PBC_PushNarratorSummary(snap.charObjGuid,
-                PBC_MakeEventLine(PBC_Localize("Condensing {0}'s history...", snap.charName)));
+                PBC_MakeEventLine(PBC_Localize("Condensing {0}'s history...", snap.charName)),
+                ev.chatType == CHAT_MSG_GUILD);
 
             std::deque<std::string> preCondensationHistory = snap.history;
 

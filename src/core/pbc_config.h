@@ -324,6 +324,10 @@ struct PBC_PendingAction
     uint32_t    chatType = 0;
     std::string text;           // Empty = no-op
     bool        isNarratorMessage = false;  // Send as narrator system message
+    // Narrator-only: true when the action originates from a guild-channel
+    // conversation. Such actions must NOT be shown to the bot's (possibly
+    // unrelated) party — guild narrator/thinks notifications stay private.
+    bool        fromGuildChannel = false;
 };
 
 extern std::queue<PBC_PendingAction> g_PBC_PendingActions;

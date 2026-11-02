@@ -320,7 +320,11 @@ void PBC_DispatchGuildMessageEvent(Player* sender, const std::string& msg)
     ev.source.senderName  = senderName;
     ev.source.message     = msg;
     ev.chatType           = CHAT_MSG_GUILD;
-    ev.canCreateEvents    = true;
+    // Guild conversations do not spawn secondary events: the secondary-event
+    // path targets the last responder's PARTY (PBC_FindGroupBotsExcluding),
+    // so party bots from an unrelated group could end up with guild history
+    // and answer with chatType = GUILD.
+    ev.canCreateEvents    = false;
 
     // Record the real player who triggered this event (for regen logging).
     {

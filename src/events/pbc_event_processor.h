@@ -32,6 +32,7 @@ void PBC_ProcessEventItem(PBC_EventItem ev);
 // ---------------------------------------------------------------------------
 // Push a narrator summary as a PendingAction to real players in anchor's group.
 // ---------------------------------------------------------------------------
-void PBC_PushNarratorSummary(const ObjectGuid& anchorObjGuid, const std::string& eventLine);
+void PBC_PushNarratorSummary(const ObjectGuid& anchorObjGuid, const std::string& eventLine,
+                             bool fromGuildChannel);
 
 #endif // MOD_PBC_EVENT_PROCESSOR_H

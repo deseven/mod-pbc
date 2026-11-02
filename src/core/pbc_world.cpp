@@ -358,9 +358,12 @@ void PBC_WorldScript::OnUpdate(uint32_t diff)
                 // Narrator system message (e.g. "thinks..." notification or a
                 // leading *text* block from the LLM reply) — send to all real
                 // players in the bot's group.  If the bot is gone, skip it.
+                // Guild-originated narrator lines never go to the party: the
+                // bot may be grouped with an unrelated party, and the guild
+                // conversation is not party business.
                 if (action.isNarratorMessage)
                 {
-                    if (bot && bot->IsInWorld())
+                    if (bot && bot->IsInWorld() && !action.fromGuildChannel)
                         PBC_NotifyRealPlayersInGroup(bot, action.text);
                     local.pop();
                     continue;
@@ -424,12 +427,12 @@ void PBC_WorldScript::OnUpdate(uint32_t diff)
                     }
                     else if (ct == CHAT_MSG_GUILD)
                     {
-                        if (bot->GetGuildId())
+                        if (Guild* botGuild = sGuildMgr->GetGuildById(bot->GetGuildId()))
                         {
-                            WorldPacket data;
-                            ChatHandler::BuildChatPacket(data, CHAT_MSG_GUILD, LANG_UNIVERSAL, bot, nullptr, action.text);
-                            if (Guild* botGuild = sGuildMgr->GetGuildById(bot->GetGuildId()))
-                                botGuild->BroadcastPacket(&data);
+                            // BroadcastToGuild (NOT Guild::BroadcastPacket on a
+                            // hand-built packet) so speak/listen rank rights and
+                            // the ignore list are respected for every member.
+                            botGuild->BroadcastToGuild(bot->GetSession(), false, action.text);
                         }
                         else
                         {
