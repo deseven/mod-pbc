@@ -22,7 +22,6 @@ extern bool     g_PBC_Enable;
 extern bool     g_PBC_DebugEnabled;
 extern bool     g_PBC_DebugShowFullRequest;
 extern bool     g_PBC_DisplayNarratorEvents;
-extern bool     g_PBC_EnableGuildChat;
 extern bool     g_PBC_CardAdditionsMigrationNeeded;
 
 // ---------------------------------------------------------------------------

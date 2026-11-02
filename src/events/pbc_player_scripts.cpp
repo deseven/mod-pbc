@@ -80,12 +80,15 @@ static void HandleChatMessage(Player* sender, uint32 type, uint32 lang,
                         type == CHAT_MSG_RAID  || type == CHAT_MSG_RAID_LEADER  ||
                         type == CHAT_MSG_RAID_WARNING);
 
-    // --- Guild chat ---
-    if (type == CHAT_MSG_GUILD && g_PBC_EnableGuildChat)
+    // --- Guild chat --- (guild and officer types must never fall through to
+    // the nearby-bots handler — officer chat has no PBC handling by design)
+    if (type == CHAT_MSG_GUILD)
     {
         PBC_DispatchGuildMessageEvent(sender, msg);
         return;
     }
+    if (type == CHAT_MSG_OFFICER)
+        return;
 
     PBC_DispatchPartyMessageEvent(sender, msg, "", type, isGroupChat);
 }
