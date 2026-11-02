@@ -386,6 +386,9 @@ static const PBC_LocaleMap ruRU = {
     // {0} = sender name, {1} = message
     { "{0} says: {1}",
       "{0} говорит: {1}" },
+    // {0} = sender name, {1} = message
+    { "{0} says in guild chat: {1}",
+      "{0} говорит в чате гильдии: {1}" },
 
     // ---- Flight / location narrator texts (pbc_poll.cpp) -------------
     // {0} = destination name
