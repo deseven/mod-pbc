@@ -341,8 +341,10 @@ void PBC_DispatchGuildMessageEvent(Player* sender, const std::string& msg)
     {
         auto collectReal = [&](Player* p)
         {
-            if (!PBC_PTR_VALID(p)) return;
-            if (!PBC_IsRealPlayerSession(p)) return;
+            // Real guildmates receive history passively (helper note: pass a
+            // Player*, so use PBC_IsBot — PBC_IsRealPlayerSession takes a
+            // WorldSession*).
+            if (!PBC_PTR_VALID(p) || PBC_IsBot(p)) return;
             ev.silentCharGuids.push_back(p->GetGUID().GetCounter());
             ev.playerCharGuids.push_back(p->GetGUID().GetCounter());
         };
