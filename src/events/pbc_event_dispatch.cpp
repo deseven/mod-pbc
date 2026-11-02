@@ -298,7 +298,7 @@ void PBC_DispatchGuildMessageEvent(Player* sender, const std::string& msg)
         {
             if (!PBC_PTR_VALID(p) || p == sender) return;
             if (!p->IsInWorld()) return;
-            if (!p->GetSession() || !p->GetSession()->IsBot()) return;
+            if (!PBC_IsBot(p)) return;
             bots.push_back(p);
         };
         guild->BroadcastWorker(collectBots);
@@ -325,7 +325,7 @@ void PBC_DispatchGuildMessageEvent(Player* sender, const std::string& msg)
     // Record the real player who triggered this event (for regen logging).
     {
         WorldSession* senderSess = sender->GetSession();
-        if (PBC_PTR_VALID(senderSess) && !senderSess->IsBot())
+        if (PBC_IsRealPlayerSession(senderSess))
             ev.regenRequesterGuid = sender->GetGUID().GetCounter();
     }
 
@@ -338,7 +338,7 @@ void PBC_DispatchGuildMessageEvent(Player* sender, const std::string& msg)
         auto collectReal = [&](Player* p)
         {
             if (!PBC_PTR_VALID(p)) return;
-            if (!p->GetSession() || p->GetSession()->IsBot()) return;
+            if (!PBC_IsRealPlayerSession(p)) return;
             ev.silentCharGuids.push_back(p->GetGUID().GetCounter());
             ev.playerCharGuids.push_back(p->GetGUID().GetCounter());
         };
