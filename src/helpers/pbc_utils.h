@@ -6,6 +6,7 @@
 #include <deque>
 #include <cstdint>
 #include <random>
+#include <filesystem>
 
 // ---------------------------------------------------------------------------
 // mod-pbc shared utility functions
@@ -16,6 +17,22 @@
 // On 64-bit, valid pointers are above first 64 KiB. Values in that range
 // are garbage from playerbots bot packet processing.
 #define PBC_PTR_VALID(p) (reinterpret_cast<uintptr_t>(p) > 0xFFFFu)
+
+// ---------------------------------------------------------------------------
+// Filesystem path helpers
+// ---------------------------------------------------------------------------
+//
+// std::filesystem::path stores filenames as UTF-16 on Windows, but path::string()
+// converts them using the *active ANSI code page* — not UTF-8.
+// These helpers round-trip through UTF-8 explicitly so non-ASCII file names
+// behave identically on every platform (on POSIX the native narrow encoding is
+// already UTF-8, so they are no-ops there).
+
+// Build a path from a UTF-8 encoded string.
+std::filesystem::path PBC_PathFromUtf8(const std::string& s);
+
+// Convert a path to a UTF-8 encoded string (safe for logs, lookups and HTTP).
+std::string PBC_PathToUtf8(const std::filesystem::path& path);
 
 // ---------------------------------------------------------------------------
 // Template substitution helpers

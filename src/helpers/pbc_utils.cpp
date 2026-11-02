@@ -19,6 +19,35 @@
 #include <regex>
 #include <algorithm>
 #include <ctime>
+#include <filesystem>
+
+// ---------------------------------------------------------------------------
+// Filesystem path helpers
+// ---------------------------------------------------------------------------
+
+std::filesystem::path PBC_PathFromUtf8(const std::string& s)
+{
+#ifdef _WIN32
+    // Interpret the UTF-8 bytes as UTF-16 internally instead of letting the
+    // path constructor run them through the ANSI code page.
+    return std::filesystem::path(
+        std::u8string(reinterpret_cast<const char8_t*>(s.data()), s.size()));
+#else
+    return std::filesystem::path(s);
+#endif
+}
+
+std::string PBC_PathToUtf8(const std::filesystem::path& path)
+{
+#ifdef _WIN32
+    // u8string() performs the correct UTF-16 → UTF-8 conversion; string() would
+    // instead use the active ANSI code page and produce mojibake.
+    std::u8string u8 = path.u8string();
+    return std::string(reinterpret_cast<const char*>(u8.data()), u8.size());
+#else
+    return path.string();
+#endif
+}
 
 // ---------------------------------------------------------------------------
 // Debug output helpers

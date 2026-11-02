@@ -11,6 +11,7 @@
 #include "pbc_database.h"
 #include "pbc_llm.h"
 #include "pbc_utils.h"
+#include "pbc_bot_helpers.h"
 #include "pbc_character.h"
 #include "pbc_event_dispatch.h"
 
@@ -150,7 +151,7 @@ Player* FindOnlinePlayerForAccount(uint32_t accountId)
         {
             WorldSession* sess = player->GetSession();
             // Return the first real (non-bot) player
-            if (sess && !sess->IsBot())
+            if (PBC_IsRealPlayerSession(sess))
                 return player;
         }
     } while (result->NextRow());
@@ -242,7 +243,7 @@ static Player* ResolveOnlineBot(uint64_t charGuid, const PBC_AuthInfo& authInfo,
 
     WorldSession* session = bot->GetSession();
     bool isOwnCharacter = (sCharacterCache->GetCharacterAccountIdByGuid(ObjectGuid(charGuid)) == authInfo.accountId);
-    if (!session || (!session->IsBot() && !isOwnCharacter))
+    if (!session || (PBC_IsBotSession(session) && !isOwnCharacter))
     {
         res.status = 400;
         res.set_content("{\"error\":\"Specified guid is not a character\"}", "application/json");
@@ -394,7 +395,7 @@ void HandleGetAccount(const httplib::Request& /*req*/, httplib::Response& res,
                 if (p && p->IsInWorld())
                 {
                     WorldSession* sess = p->GetSession();
-                    isPlayer = (sess && !sess->IsBot());
+                    isPlayer = PBC_IsRealPlayerSession(sess);
                 }
             }
 
@@ -1324,7 +1325,7 @@ void HandlePostPartyNarrate(const httplib::Request& req, httplib::Response& res,
         Player* member = ref->GetSource();
         if (!member || !member->IsInWorld()) continue;
         WorldSession* sess = member->GetSession();
-        if (!sess || !sess->IsBot()) continue;
+        if (!PBC_IsBotSession(sess)) continue;
 
         uint64_t memberGuid = member->GetGUID().GetCounter();
         uint32_t memberAccount = sCharacterCache->GetCharacterAccountIdByGuid(ObjectGuid(memberGuid));
@@ -1392,7 +1393,7 @@ void HandlePostCharTrigger(const httplib::Request& req, httplib::Response& res,
         return;
     }
 
-    bool isBot = ts->IsBot();
+    bool isBot = PBC_IsBotSession(ts);
     bool isOwnCharacter = !isBot;
 
     if (!isBot && !isOwnCharacter)

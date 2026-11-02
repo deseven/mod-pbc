@@ -1,4 +1,5 @@
 #include "pbc_group_helpers.h"
+#include "pbc_bot_helpers.h"
 #include "pbc_utils.h"
 #include "Player.h"
 #include "Group.h"
@@ -26,7 +27,7 @@ std::vector<Player*> PBC_FindGroupBots(Player* player)
         if (!member->IsInWorld()) continue;
         WorldSession* sess = member->GetSession();
         if (!PBC_PTR_VALID(sess)) continue;
-        if (!sess->IsBot()) continue;
+        if (!PBC_IsBotSession(sess)) continue;
         bots.push_back(member);
     }
     return bots;
@@ -51,7 +52,7 @@ std::vector<Player*> PBC_FindRealPlayersInGroup(Player* player)
         if (!member->IsInWorld()) continue;
         WorldSession* sess = member->GetSession();
         if (!PBC_PTR_VALID(sess)) continue;
-        if (sess->IsBot()) continue;
+        if (PBC_IsBotSession(sess)) continue;
         realPlayers.push_back(member);
     }
     return realPlayers;
@@ -76,7 +77,7 @@ std::vector<Player*> PBC_FindRealPlayersInSubGroup(Player* player)
         if (!PBC_PTR_VALID(member) || member == player) continue;
         if (!member->IsInWorld()) continue;
         WorldSession* sess = member->GetSession();
-        if (!PBC_PTR_VALID(sess) || sess->IsBot()) continue;
+        if (!PBC_IsRealPlayerSession(sess)) continue;
         if (grp->GetMemberGroup(member->GetGUID()) != mySubGroup) continue;
         realPlayers.push_back(member);
     }
@@ -108,7 +109,7 @@ std::vector<Player*> PBC_FindSubGroupBots(Player* player)
         if (!PBC_PTR_VALID(member) || member == player) continue;
         if (!member->IsInWorld()) continue;
         WorldSession* sess = member->GetSession();
-        if (!PBC_PTR_VALID(sess) || !sess->IsBot()) continue;
+        if (!PBC_IsBotSession(sess)) continue;
         if (grp->GetMemberGroup(member->GetGUID()) != mySubGroup) continue;
         bots.push_back(member);
     }
@@ -135,7 +136,7 @@ std::vector<Player*> PBC_FindGroupBotsExcluding(Player* player,
         if (!member->IsInWorld()) continue;
         WorldSession* sess = member->GetSession();
         if (!PBC_PTR_VALID(sess)) continue;
-        if (!sess->IsBot()) continue;
+        if (!PBC_IsBotSession(sess)) continue;
         if (excludedGuids.count(member->GetGUID().GetCounter())) continue;
         bots.push_back(member);
     }
@@ -155,7 +156,7 @@ std::vector<Player*> PBC_FindNearbyBots(Player* source, float range)
     {
         if (!PBC_PTR_VALID(p) || p == source) return;
         if (!p->IsInWorld()) return;
-        if (!p->GetSession() || !p->GetSession()->IsBot()) return;
+        if (!PBC_IsBot(p)) return;
         if (p->IsWithinDist(source, range))
             bots.push_back(p);
     };
@@ -179,7 +180,7 @@ bool PBC_BotIsGroupedWithRealPlayer(Player* bot)
         if (!PBC_PTR_VALID(member) || !member->IsInWorld()) continue;
         WorldSession* sess = member->GetSession();
         if (!PBC_PTR_VALID(sess)) continue;
-        if (!sess->IsBot()) return true;
+        if (!PBC_IsBotSession(sess)) return true;
     }
     return false;
 }

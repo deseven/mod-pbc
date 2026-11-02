@@ -4,6 +4,7 @@
 #include "pbc_http.h"
 #include "pbc_llm.h"
 #include "pbc_utils.h"
+#include "pbc_bot_helpers.h"
 #include "pbc_locales.h"
 #include "pbc_scene_helpers.h"
 #include "pbc_equipment_helpers.h"
@@ -791,7 +792,7 @@ PBC_CharacterSnapshot PBC_SnapshotCharacter(Player* bot)
                 if (!ms) continue;
 
                 snap.partyMemberNames.push_back(member->GetName());
-                if (!ms->IsBot())
+                if (!PBC_IsBotSession(ms))
                     snap.hasRealPlayerInGroup = true;
             }
         }

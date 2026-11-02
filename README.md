@@ -6,9 +6,6 @@
 
 Think old Bioware games with companions — that's the core idea. The intended use is a fresh start at low rates with a full party of altbots playing alongside you, developing their own stories as you progress through the game together.
 
-> [!IMPORTANT]
-> The module is currently in active development and things could be changing rapidly. Before updating your copy, it's highly recommended to do a database backup, read the changes and notes in [the Releases](https://github.com/deseven/mod-pbc/releases) and check your server logs after running the newer version. There should be no hard incompatibilities, but new config variables are getting added, existing ones change their defaults, old routines get replaced and so on.
-
 
 ## How It Works
 
