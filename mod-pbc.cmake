@@ -54,6 +54,17 @@ if(TARGET modules)
                           "  Download from: https://github.com/yhirose/cpp-httplib")
     endif()
 
+    # Include llm-retry (header-only, MIT)
+    # Bundled in deps/Mattbusel/llm-retry/llm_retry.hpp, used for LLM request retries with backoff.
+    if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/deps/Mattbusel/llm-retry/llm_retry.hpp")
+        target_include_directories(modules BEFORE PRIVATE ${CMAKE_CURRENT_LIST_DIR}/deps/Mattbusel/llm-retry)
+        message(STATUS "[mod-pbc] Using bundled llm-retry (namespaced as pbc_llm)")
+    else()
+        message(FATAL_ERROR "[mod-pbc] llm-retry not found.\n"
+                          "  Please place llm_retry.hpp in deps/Mattbusel/llm-retry/llm_retry.hpp\n"
+                          "  Download from: https://github.com/Mattbusel/llm-retry")
+    endif()
+
     # Enable SSL/TLS support for HTTPS connections
     find_package(OpenSSL QUIET)
     if(OpenSSL_FOUND OR OPENSSL_FOUND)

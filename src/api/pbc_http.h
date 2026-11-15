@@ -8,6 +8,13 @@
 
 struct PBC_HistoryEntry;
 
+// Outcome of a PBC_HttpClient::Post call, for callers that decide on retries.
+struct PBC_HttpStatus
+{
+    int    code          = 0;    // HTTP status code, 0 if no response was received
+    double retryAfterSec = -1.0; // Retry-After header in seconds, -1 if absent
+};
+
 // Thin wrapper around cpp-httplib for synchronous HTTP/HTTPS POST requests.
 // Supports custom auth headers (Bearer token, x-api-key, etc.).
 class PBC_HttpClient
@@ -17,10 +24,12 @@ public:
 
     // POST jsonData to url with optional extra headers.
     // extraHeaders is a list of name/value pairs added to the request.
+    // If status is given, it receives the HTTP status code and Retry-After.
     // Returns the raw response body, or "" on error.
     std::string Post(const std::string& url,
                      const std::string& jsonData,
-                     const std::vector<std::pair<std::string, std::string>>& extraHeaders = {});
+                     const std::vector<std::pair<std::string, std::string>>& extraHeaders = {},
+                     PBC_HttpStatus* status = nullptr);
 
     void SetTimeoutSeconds(int seconds);
 

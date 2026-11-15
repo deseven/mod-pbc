@@ -6,8 +6,14 @@
 
 #include <algorithm>
 #include <cctype>
-#include <chrono>
-#include <thread>
+
+// Bundled llm-retry, relocated into the pbc_llm namespace for the duration of
+// the include (same technique as pbc_json.h) so it cannot clash with another
+// module that ships its own copy.
+#define LLM_RETRY_IMPLEMENTATION
+#define llm pbc_llm
+#include <llm_retry.hpp>
+#undef llm
 
 using json = pbc_json;
 
@@ -159,23 +165,40 @@ PBC_LLMResult PBC_CallLLMWithConfig(const PBC_APIConfig& cfg,
     }
 
     // --- Execute request --------------------------------------------------
-    constexpr int MAX_ATTEMPTS = 2;
-    for (int attempt = 1; attempt <= MAX_ATTEMPTS; ++attempt)
+    // Transient failures (no response, HTTP 408/429/5xx, an error or
+    // malformed body) are retried with exponential backoff (1 s, then 2 s),
+    // or after the server's Retry-After when it sends one. Other 4xx answers
+    // (bad key, unknown model) fail at once: repeating them cannot succeed.
+    pbc_llm::RetryConfig retryCfg;
+    retryCfg.max_attempts  = 3;
+    retryCfg.base_delay_ms = 1000.0;
+    retryCfg.max_delay_ms  = 10000.0;
+    // Longest Retry-After worth blocking this thread for; beyond it, give up.
+    constexpr double MAX_RETRY_AFTER_SEC = 30.0;
+
+    const int MAX_ATTEMPTS = retryCfg.max_attempts;
+    int attempt = 0;
+
+    auto attemptOnce = [&]() -> PBC_LLMResult
     {
+        ++attempt;
         if (attempt > 1)
-        {
-            PBC_Log(PBC_LogLevel::PBC_DEBUG, "LLM: waiting 3s before retry (attempt {}/{})...", attempt, MAX_ATTEMPTS);
-            std::this_thread::sleep_for(std::chrono::seconds(3));
-        }
+            PBC_Log(PBC_LogLevel::PBC_DEBUG, "LLM: retrying (attempt {}/{})...", attempt, MAX_ATTEMPTS);
 
         PBC_HttpClient http;
         http.SetTimeoutSeconds(cfg.requestTimeoutSec);
-        std::string responseBody = http.Post(url, bodyStr, headers);
+        PBC_HttpStatus status;
+        std::string responseBody = http.Post(url, bodyStr, headers, &status);
 
         if (responseBody.empty())
         {
             PBC_Log(PBC_LogLevel::PBC_ERROR, "LLM: empty response from API (attempt {}/{}).", attempt, MAX_ATTEMPTS);
-            continue;
+            // An empty 200 is retried like a dropped connection (code 0).
+            int code = status.code == 200 ? 0 : status.code;
+            bool retryable = status.retryAfterSec <= MAX_RETRY_AFTER_SEC;
+            if (!retryable)
+                PBC_Log(PBC_LogLevel::PBC_ERROR, "LLM: server asked to retry after {}s, giving up.", status.retryAfterSec);
+            throw pbc_llm::LLMError{ code, "empty response", retryable, status.retryAfterSec };
         }
 
         if (g_PBC_DebugShowFullRequest)
@@ -183,6 +206,9 @@ PBC_LLMResult PBC_CallLLMWithConfig(const PBC_APIConfig& cfg,
             PBC_Log(PBC_LogLevel::PBC_DEBUG, "LLM response body:\n{}", PBC_SanitizeForFmt(PBC_TruncateForDebug(responseBody)));
         }
 
+        // Errors in a 200 body (error object, unexpected format, bad JSON)
+        // are retried as before; they are reported with code 0.
+        std::string failure;
         try
         {
             json resp = json::parse(responseBody);
@@ -196,7 +222,7 @@ PBC_LLMResult PBC_CallLLMWithConfig(const PBC_APIConfig& cfg,
                     errMsg = responseBody;
                 PBC_Log(PBC_LogLevel::PBC_ERROR, "LLM API error (attempt {}/{}): {}",
                           attempt, MAX_ATTEMPTS, errMsg);
-                continue;
+                throw pbc_llm::LLMError{ 0, "API error", true };
             }
 
             std::string text;
@@ -208,7 +234,7 @@ PBC_LLMResult PBC_CallLLMWithConfig(const PBC_APIConfig& cfg,
                 if (!resp.contains("content") || !resp["content"].is_array() || resp["content"].empty())
                 {
                     PBC_Log(PBC_LogLevel::PBC_ERROR, "LLM: unexpected Anthropic response format (attempt {}/{}).", attempt, MAX_ATTEMPTS);
-                    continue;
+                    throw pbc_llm::LLMError{ 0, "unexpected response format", true };
                 }
                 text = resp["content"][0]["text"].get<std::string>();
 
@@ -226,7 +252,7 @@ PBC_LLMResult PBC_CallLLMWithConfig(const PBC_APIConfig& cfg,
                 if (!resp.contains("message") || !resp["message"].contains("content"))
                 {
                     PBC_Log(PBC_LogLevel::PBC_ERROR, "LLM: unexpected Ollama response format (attempt {}/{}).", attempt, MAX_ATTEMPTS);
-                    continue;
+                    throw pbc_llm::LLMError{ 0, "unexpected response format", true };
                 }
                 text = resp["message"]["content"].get<std::string>();
 
@@ -255,19 +281,28 @@ PBC_LLMResult PBC_CallLLMWithConfig(const PBC_APIConfig& cfg,
                 for (char& c : text)
                     if (c == '\n' || c == '\r') c = ' ';
 
-            result.success    = true;
-            result.text       = text;
-            result.tokensUsed = tokensUsed;
+            PBC_LLMResult ok{ true, text, tokensUsed };
 
             PBC_Log(PBC_LogLevel::PBC_DEBUG, "LLM reply ({} tokens): {}", tokensUsed, PBC_SanitizeForFmt(text));
 
-            return result;
+            return ok;
         }
         catch (const std::exception& ex)
         {
             PBC_Log(PBC_LogLevel::PBC_ERROR, "JSON parse error (attempt {}/{}): {}", attempt, MAX_ATTEMPTS, ex.what());
             PBC_Log(PBC_LogLevel::PBC_DEBUG, "Raw response: {}", PBC_SanitizeForFmt(responseBody));
+            failure = ex.what();
         }
+        throw pbc_llm::LLMError{ 0, failure, true };
+    };
+
+    try
+    {
+        return pbc_llm::with_retry<PBC_LLMResult>(attemptOnce, retryCfg).value;
+    }
+    catch (const pbc_llm::LLMError&)
+    {
+        // Every failed attempt has already been logged above.
     }
 
     return result;

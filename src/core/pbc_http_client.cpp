@@ -10,6 +10,7 @@
 // Rename httplib namespace to avoid ODR violations with other modules.
 #define httplib pbc_httplib
 #include <httplib.h>
+#include <cstdlib>
 #include <regex>
 #include <vector>
 #include <utility>
@@ -23,7 +24,8 @@ void PBC_HttpClient::SetTimeoutSeconds(int seconds)
 
 std::string PBC_HttpClient::Post(const std::string& url,
                                  const std::string& jsonData,
-                                 const std::vector<std::pair<std::string, std::string>>& extraHeaders)
+                                 const std::vector<std::pair<std::string, std::string>>& extraHeaders,
+                                 PBC_HttpStatus* status)
 {
     try
     {
@@ -80,6 +82,20 @@ std::string PBC_HttpClient::Post(const std::string& url,
         {
             PBC_Log(PBC_LogLevel::PBC_ERROR, "HTTP request failed (no response) for {}:{}{}", host, port, path);
             return "";
+        }
+        if (status)
+        {
+            status->code = res->status;
+            // Only the delta-seconds form ("Retry-After: 20") is used; an
+            // HTTP-date is ignored and the caller falls back to its own backoff.
+            if (res->has_header("Retry-After"))
+            {
+                const std::string value = res->get_header_value("Retry-After");
+                char* end = nullptr;
+                double secs = std::strtod(value.c_str(), &end);
+                if (end != value.c_str() && secs >= 0.0)
+                    status->retryAfterSec = secs;
+            }
         }
         if (res->status != 200)
         {
