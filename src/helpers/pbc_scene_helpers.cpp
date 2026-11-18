@@ -12,6 +12,9 @@
 #include "GameTime.h"
 #include "DBCStores.h"
 #include "SpellInfo.h"
+#ifdef PBC_COA_CORE
+#include "SpellMgr.h"
+#endif
 #include "SpellAuraDefines.h"
 #include "SpellAuraEffects.h"
 #include "Group.h"
@@ -581,6 +584,88 @@ static std::string GetHunterPetFamilyName(Pet* pet)
     return std::string(familyName);
 }
 
+static std::string BuildHunterPetStr(Pet* pet)
+{
+    std::string family = GetHunterPetFamilyName(pet);
+    std::string const& name = pet->GetName();
+    switch (pet->GetHappinessState())
+    {
+        case HAPPY:   return PBC_Localize("Your {0} {1} is by your side, happy and alert.", family, name);
+        case CONTENT: return PBC_Localize("Your {0} {1} is by your side, content.", family, name);
+        default:      return PBC_Localize("Your {0} {1} is by your side, but seems unhappy.", family, name);
+    }
+}
+
+#ifdef PBC_COA_CORE
+static bool UsesCoaPetContext(Player* owner)
+{
+    uint8 cls = owner->getClass();
+    return IsAscensionClass(cls) || cls == CLASS_HERO;
+}
+
+static Pet* GetCoaPermanentPet(Player* owner)
+{
+    Pet* pet = owner->GetPet();
+    if (!pet || !pet->IsInWorld() || pet->isTemporarySummoned() ||
+        pet->GetOwnerGUID() != owner->GetGUID() || !pet->IsPermanentPetFor(owner))
+        return nullptr;
+    return pet;
+}
+
+static std::string CoaPetDescription(Pet* pet)
+{
+    if (pet->getPetType() == HUNTER_PET)
+        return GetHunterPetFamilyName(pet) + " " + pet->GetName();
+
+    std::string kind = PBC_GetCreatureName(pet->GetEntry());
+    std::string const& name = pet->GetName();
+    if (kind.empty())
+        return name;
+    if (name.empty() || name == kind || name == pet->GetCreatureTemplate()->Name)
+        return kind;
+    return PBC_Localize("{0} named {1}", kind, name);
+}
+
+static std::string BuildCoaPetStr(Pet* pet)
+{
+    if (pet->isDead())
+        return PBC_Localize("Your {0} is seriously wounded.", CoaPetDescription(pet));
+    if (pet->getPetType() == HUNTER_PET)
+        return BuildHunterPetStr(pet);
+    return PBC_Localize("Your {0} is by your side.", CoaPetDescription(pet));
+}
+
+static std::string BuildMissingCoaPetStr(Player* owner)
+{
+    constexpr uint32 houndmaster = 802233;
+    constexpr uint32 houndmastersWhistle = 801343;
+    constexpr uint32 shadowhoundEntry = 50124;
+    if (owner->getClass() == CLASS_WITCH_HUNTER &&
+        (owner->HasSpell(houndmaster) || owner->HasSpell(houndmastersWhistle)))
+    {
+        if (PetStable const* stable = owner->GetPetStable())
+        {
+            auto const* hound = Pet::GetLoadPetInfo(*stable, shadowhoundEntry, 0, false).first;
+            if (hound && !hound->Health)
+                return PBC_Localize("Your shadowhound is seriously wounded.");
+        }
+        return PBC_Localize("You currently have no shadowhound at your side.");
+    }
+
+    // A learned permanent pet spell is evidence of a companion the character can call.
+    for (auto const& known : owner->GetSpellMap())
+    {
+        uint32 spellId = known.first;
+        if (!owner->HasSpell(spellId))
+            continue;
+        SpellInfo const* spell = sSpellMgr->GetSpellInfo(spellId);
+        if (spell && !spell->IsPassive() && spell->HasEffect(SPELL_EFFECT_SUMMON_PET) && spell->GetDuration() <= 0)
+            return PBC_Localize("You currently have no summoned companion at your side.");
+    }
+    return {};
+}
+#endif
+
 // Build the alive-pet string for the owner (pet_info variable).
 static std::string BuildAlivePetStr(Player* bot, Pet* pet)
 {
@@ -589,21 +674,7 @@ static std::string BuildAlivePetStr(Player* bot, Pet* pet)
     switch (bot->getClass())
     {
         case CLASS_HUNTER:
-        {
-            std::string family = GetHunterPetFamilyName(pet);
-
-            HappinessState happiness = pet->GetHappinessState();
-            switch (happiness)
-            {
-                case HAPPY:
-                    return PBC_Localize("Your {0} {1} is by your side, happy and alert.", family, petName);
-                case CONTENT:
-                    return PBC_Localize("Your {0} {1} is by your side, content.", family, petName);
-                case UNHAPPY:
-                default:
-                    return PBC_Localize("Your {0} {1} is by your side, but seems unhappy.", family, petName);
-            }
-        }
+            return BuildHunterPetStr(pet);
         case CLASS_WARLOCK:
         {
             std::string demonType = GetDemonTypeName(pet->GetEntry());
@@ -639,6 +710,15 @@ static std::string BuildDeadPetStr(Player* bott, Pet* pet)
 std::string PBC_BuildPetInfoStr(Player* bot)
 {
     if (!bot) return "";
+
+#ifdef PBC_COA_CORE
+    if (UsesCoaPetContext(bot))
+    {
+        if (Pet* pet = GetCoaPermanentPet(bot))
+            return BuildCoaPetStr(pet);
+        return BuildMissingCoaPetStr(bot);
+    }
+#endif
 
     // Only handle pet classes
     if (!IsPetClass(bot))
@@ -698,6 +778,19 @@ static std::string BuildMemberPetSnippet(Player* owner, Pet* pet)
 std::string PBC_BuildPetInfoForMember(Player* member)
 {
     if (!member) return "";
+
+#ifdef PBC_COA_CORE
+    if (UsesCoaPetContext(member))
+    {
+        Pet* pet = GetCoaPermanentPet(member);
+        if (!pet)
+            return "";
+        std::string description = CoaPetDescription(pet);
+        if (pet->isDead())
+            return PBC_Localize("{0} ({1}'s companion, seriously wounded)", description, member->GetName());
+        return PBC_Localize("{0} ({1}'s companion)", description, member->GetName());
+    }
+#endif
 
     // Only handle pet classes
     if (!IsPetClass(member))
