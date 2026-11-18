@@ -36,9 +36,17 @@ std::string PBC_BuildLosStr(Player* bot);
 // "You are currently on foot in Goldshire (Elwynn Forest), it's afternoon."
 std::string PBC_BuildSceneStr(Player* bot);
 
+#ifdef PBC_COA_CORE
+void PBC_RegisterCoaWeatherScript();
+void PBC_ForgetCoaWeather(Player* player);
+#endif
+
 // Returns the character's combat role string, e.g. "tank", "melee DPS",
 // "healer", "ranged DPS", or the class name for hybrids.
 std::string PBC_RoleStr(Player* bot);
+
+// Turns a known CoA combat role into a line for the default context template.
+std::string PBC_CombatRoleContext(std::string const& role);
 
 // Returns the group status string, e.g.
 // "You are currently in a group led by John (Male Human Warrior) with the

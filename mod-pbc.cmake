@@ -1,4 +1,28 @@
 if(TARGET modules)
+    file(GLOB_RECURSE PBC_SOURCES "${CMAKE_CURRENT_LIST_DIR}/src/*.cpp")
+
+    if(TARGET coa)
+        set_property(SOURCE
+            "${CMAKE_CURRENT_LIST_DIR}/src/core/pbc_main.cpp"
+            "${CMAKE_CURRENT_LIST_DIR}/src/events/pbc_player_scripts.cpp"
+            "${CMAKE_CURRENT_LIST_DIR}/src/helpers/pbc_scene_helpers.cpp"
+            APPEND PROPERTY COMPILE_DEFINITIONS PBC_COA_CORE)
+    endif()
+
+    # Use the role API of whichever CoA bot modules are linked into this target.
+    if(TARGET coa AND "mod-playerbots" IN_LIST STATIC_SCRIPT_MODULES
+        AND EXISTS "${CMAKE_SOURCE_DIR}/modules/mod-playerbots/src/Ai/Class/Coa/CoaSpecialization.h")
+        set_property(SOURCE "${CMAKE_CURRENT_LIST_DIR}/src/helpers/pbc_scene_helpers.cpp"
+            APPEND PROPERTY COMPILE_DEFINITIONS PBC_COA_SQUIDBOTS)
+    endif()
+    if(TARGET coa AND "mod-coa-playerbots" IN_LIST STATIC_SCRIPT_MODULES
+        AND EXISTS "${CMAKE_SOURCE_DIR}/modules/mod-coa-playerbots/src/BotMgr.h")
+        set_property(SOURCE
+            "${CMAKE_CURRENT_LIST_DIR}/src/helpers/pbc_bot_helpers.cpp"
+            "${CMAKE_CURRENT_LIST_DIR}/src/helpers/pbc_scene_helpers.cpp"
+            APPEND PROPERTY COMPILE_DEFINITIONS PBC_COA_PLAYERBOTS)
+    endif()
+
     # Optional mod_weather_vibe integration
     if(NOT "${MODULE_MOD_WEATHER_VIBE}" STREQUAL "disabled" AND EXISTS "${CMAKE_SOURCE_DIR}/modules/mod_weather_vibe/src/core/mod_wv_core.h")
         target_compile_definitions(modules PRIVATE MOD_WEATHER_VIBE)
@@ -10,7 +34,7 @@ if(TARGET modules)
     endif()
     # Include nlohmann/json library
     if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/deps/nlohmann/json.hpp")
-        target_include_directories(modules BEFORE PRIVATE ${CMAKE_CURRENT_LIST_DIR}/deps)
+        set_property(SOURCE ${PBC_SOURCES} APPEND PROPERTY INCLUDE_DIRECTORIES "${CMAKE_CURRENT_LIST_DIR}/deps")
         message(STATUS "[mod-pbc] Using bundled nlohmann/json (namespaced as pbc_nlohmann)")
     elseif(EXISTS "${CMAKE_SOURCE_DIR}/deps/nlohmann")
         target_include_directories(modules PRIVATE ${CMAKE_SOURCE_DIR}/deps/nlohmann)
@@ -46,7 +70,7 @@ if(TARGET modules)
     # Include cpp-httplib (header-only)
     # Bundled version (v0.43.1) in deps/yhirose/cpp-httplib/httplib.h provides HTTP server + WebSocket support.
     if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/deps/yhirose/cpp-httplib/httplib.h")
-        target_include_directories(modules BEFORE PRIVATE ${CMAKE_CURRENT_LIST_DIR}/deps/yhirose/cpp-httplib)
+        set_property(SOURCE ${PBC_SOURCES} APPEND PROPERTY INCLUDE_DIRECTORIES "${CMAKE_CURRENT_LIST_DIR}/deps/yhirose/cpp-httplib")
         message(STATUS "[mod-pbc] Using bundled cpp-httplib v0.43.1 (with WebSocket support)")
     else()
         message(FATAL_ERROR "[mod-pbc] cpp-httplib not found.\n"
@@ -57,7 +81,10 @@ if(TARGET modules)
     # Enable SSL/TLS support for HTTPS connections
     find_package(OpenSSL QUIET)
     if(OpenSSL_FOUND OR OPENSSL_FOUND)
-        target_compile_definitions(modules PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
+        # CoA partitions the static modules target on MSVC. Include paths from
+        # OpenSSL's imported targets do not reach those partitions.
+        set_property(SOURCE ${PBC_SOURCES} APPEND PROPERTY INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}")
+        set_property(SOURCE ${PBC_SOURCES} APPEND PROPERTY COMPILE_DEFINITIONS CPPHTTPLIB_OPENSSL_SUPPORT)
         target_link_libraries(modules PRIVATE OpenSSL::SSL OpenSSL::Crypto)
         message(STATUS "[mod-pbc] OpenSSL found - HTTPS support enabled")
     else()

@@ -5,6 +5,9 @@
 #include "pbc_player_scripts.h"
 #include "pbc_group_scripts.h"
 #include "pbc_quest_scripts.h"
+#ifdef PBC_COA_CORE
+#include "pbc_scene_helpers.h"
+#endif
 
 void Addmod_pbcScripts()
 {
@@ -17,6 +20,9 @@ void Addmod_pbcScripts()
     new PBC_AllGameObjectQuestScript();
     new PBC_AllItemQuestScript();
     new PBC_CommandScript();
+#ifdef PBC_COA_CORE
+    PBC_RegisterCoaWeatherScript();
+#endif
 }
 
 // Compatibility wrapper for checkouts that still live in the old

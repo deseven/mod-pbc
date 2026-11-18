@@ -19,8 +19,28 @@
 #include "SharedDefines.h"
 #include <fmt/core.h>
 
+#ifdef PBC_COA_PLAYERBOTS
+#include "BotAI.h"
+#include "pbc_bot_helpers.h"
+#endif
+
+#ifdef PBC_COA_SQUIDBOTS
+#include "PlayerbotAI.h"
+#endif
+
 #ifdef MOD_WEATHER_VIBE
 #include "mod_wv_core.h"
+#endif
+
+#ifdef PBC_COA_CORE
+#include "ScriptMgr.h"
+#include "Weather.h"
+#include "WorldPacket.h"
+#include <mutex>
+#endif
+
+#if defined(MOD_WEATHER_VIBE) || defined(PBC_COA_CORE)
+#include <optional>
 #endif
 
 #include <ctime>
@@ -52,7 +72,78 @@ static std::string TimeOfDayLabel()
     return PBC_Localize("early night");
 }
 
+#ifdef PBC_COA_CORE
+namespace
+{
+struct CoaWeatherObservation
+{
+    uint32 mapId;
+    uint32 instanceId;
+    uint32 zoneId;
+    WeatherState state;
+};
+
+std::mutex coaWeatherMutex;
+std::unordered_map<ObjectGuid, CoaWeatherObservation> coaWeather;
+
+class PBC_CoaWeatherScript final : public PlayerbotScript
+{
+public:
+    PBC_CoaWeatherScript() : PlayerbotScript("PBC_CoaWeatherScript") { }
+
+    void OnPlayerbotPacketSent(Player* player, WorldPacket const* packet) override
+    {
+        // This hook also receives packets for socketless bot sessions.
+        if (packet->GetOpcode() != SMSG_WEATHER || !player || !player->IsInWorld() ||
+            packet->size() < sizeof(uint32))
+            return;
+
+        CoaWeatherObservation observation{
+            player->GetMapId(), player->GetInstanceId(), player->GetZoneId(),
+            static_cast<WeatherState>(packet->read<uint32>(0))
+        };
+        std::lock_guard lock(coaWeatherMutex);
+        coaWeather.insert_or_assign(player->GetGUID(), observation);
+    }
+};
+}
+
+void PBC_RegisterCoaWeatherScript()
+{
+    new PBC_CoaWeatherScript();
+}
+
+void PBC_ForgetCoaWeather(Player* player)
+{
+    std::lock_guard lock(coaWeatherMutex);
+    coaWeather.erase(player->GetGUID());
+}
+#endif
+
+#if defined(MOD_WEATHER_VIBE) || defined(PBC_COA_CORE)
+static std::optional<WeatherState> SceneWeather(Player* bot)
+{
+    uint32 zoneId = bot->GetZoneId();
 #ifdef MOD_WEATHER_VIBE
+    if (sWeatherVibeCore.IsEnabled())
+    {
+        auto const& lastApplied = sWeatherVibeCore.GetLastApplied();
+        auto it = lastApplied.find(zoneId);
+        if (it != lastApplied.end() && it->second.hasValue)
+            return it->second.state;
+    }
+#endif
+
+#ifdef PBC_COA_CORE
+    std::lock_guard lock(coaWeatherMutex);
+    auto it = coaWeather.find(bot->GetGUID());
+    if (it != coaWeather.end() && it->second.zoneId == zoneId &&
+        it->second.mapId == bot->GetMapId() && it->second.instanceId == bot->GetInstanceId())
+        return it->second.state;
+#endif
+    return std::nullopt;
+}
+
 // Returns the weather clause to append after the time-of-day, e.g.
 // "it's foggy", "it's raining lightly", "there is a heavy sandstorm".
 // For WEATHER_STATE_FINE (clear sky) returns "the weather is fine" to
@@ -276,32 +367,23 @@ std::string PBC_BuildSceneStr(Player* bot)
 {
     std::string timeLabel = TimeOfDayLabel();
 
-    // Build the time/weather suffix (lowercase, no trailing period — it will be
-    // appended after a comma inside a larger sentence).
-    std::string timeWeather;
+    std::string timeWeather = PBC_Localize("it's ") + timeLabel;
 
-#ifdef MOD_WEATHER_VIBE
-    if (bot && sWeatherVibeCore.IsEnabled())
+#if defined(MOD_WEATHER_VIBE) || defined(PBC_COA_CORE)
+    if (bot)
     {
-        uint32 zoneId = bot->GetZoneId();
-        auto const& lastApplied = sWeatherVibeCore.GetLastApplied();
-        auto it = lastApplied.find(zoneId);
-        if (it != lastApplied.end() && it->second.hasValue)
+        if (auto state = SceneWeather(bot))
         {
-            std::string clause = WeatherClause(it->second.state);
+            std::string clause = WeatherClause(*state);
             if (!clause.empty())
             {
-                timeWeather = PBC_Localize("it's ") + timeLabel + PBC_Localize(" and ") + clause;
-                // When indoors and weather is not fine, note that the character is sheltered
-                if (!bot->IsOutdoors() && it->second.state != WEATHER_STATE_FINE)
+                timeWeather += PBC_Localize(" and ") + clause;
+                if (!bot->IsOutdoors() && *state != WEATHER_STATE_FINE)
                     timeWeather += PBC_Localize(", but you are inside and sheltered from the weather", bot->getGender());
             }
         }
     }
 #endif
-
-    if (timeWeather.empty())
-        timeWeather = PBC_Localize("it's ") + timeLabel;
 
     // --- Taxi flight ---
     if (bot && bot->IsInFlight())
@@ -343,6 +425,27 @@ std::string PBC_BuildSceneStr(Player* bot)
 
 std::string PBC_RoleStr(Player* bot)
 {
+#ifdef PBC_COA_PLAYERBOTS
+    if (PBC_IsCoaCompanion(bot))
+    {
+        switch (BotAI::GetRole(bot->GetGUID()))
+        {
+            case BotRole::Tank:    return PBC_Localize("tank");
+            case BotRole::Healer:  return PBC_Localize("healer");
+            case BotRole::Dps:     return PBC_Localize("DPS");
+            case BotRole::Support: return PBC_Localize("support");
+        }
+    }
+#endif
+#ifdef PBC_COA_SQUIDBOTS
+    if (PlayerbotAI::IsTank(bot, true))
+        return PBC_Localize("tank");
+    if (PlayerbotAI::IsHeal(bot, true))
+        return PBC_Localize("healer");
+    return PlayerbotAI::IsRanged(bot, true) ? PBC_Localize("ranged DPS") : PBC_Localize("melee DPS");
+#elif defined(PBC_COA_CORE)
+    return {};
+#else
     switch (bot->getClass())
     {
         case CLASS_WARRIOR:      return bot->GetSpec() == 2 ? PBC_Localize("tank") : PBC_Localize("melee DPS");
@@ -357,6 +460,18 @@ std::string PBC_RoleStr(Player* bot)
         case CLASS_DRUID:        return PBC_Localize("druid");
         default:                 return PBC_Localize("adventurer");
     }
+#endif
+}
+
+std::string PBC_CombatRoleContext(std::string const& role)
+{
+#if defined(PBC_COA_SQUIDBOTS) || defined(PBC_COA_PLAYERBOTS)
+    if (!role.empty())
+        return PBC_Localize("Your combat role is {0}.", role);
+#else
+    (void)role;
+#endif
+    return {};
 }
 
 // ---------------------------------------------------------------------------
@@ -615,7 +730,7 @@ std::string PBC_BuildGroupStatusStr(Player* bot)
     auto memberInfo = [](Player* member) -> std::string {
         return member->GetName()
              + " (" + PBC_GenderStr(member->getGender())
-             + " " + PBC_RaceStr(member->getRace())
+             + " " + PBC_RaceStr(member->getRace(true))
              + " " + PBC_ClassStr(member->getClass()) + ")";
     };
 

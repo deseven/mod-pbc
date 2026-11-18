@@ -565,6 +565,7 @@ void HandleGetCharCard(const httplib::Request& req, httplib::Response& res,
         vars["char_gender"] = PBC_GenderStr(cacheEntry->Sex);
         vars["char_race"]   = PBC_RaceStr(cacheEntry->Race);
         vars["char_class"]  = PBC_ClassStr(cacheEntry->Class);
+        vars["char_role_context"] = "";
         vars["char_level"]  = std::to_string(cacheEntry->Level);
 
         PBC_SubstituteFromMap(cardText, vars, false);

@@ -1,4 +1,7 @@
 #include "pbc_player_scripts.h"
+#ifdef PBC_COA_CORE
+#include "pbc_scene_helpers.h"
+#endif
 #include "pbc_config.h"
 #include "pbc_character.h"
 #include "pbc_database.h"
@@ -333,8 +336,11 @@ void PBC_PlayerEvents::OnPlayerLogin(Player* player)
 
 void PBC_PlayerEvents::OnPlayerLogout(Player* player)
 {
-    if (!g_PBC_Enable) return;
     if (!PBC_PTR_VALID(player)) return;
+#ifdef PBC_COA_CORE
+    PBC_ForgetCoaWeather(player);
+#endif
+    if (!g_PBC_Enable) return;
 
     uint64_t guid = player->GetGUID().GetCounter();
     uint32_t accountId = sCharacterCache->GetCharacterAccountIdByGuid(ObjectGuid(guid));

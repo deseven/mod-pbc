@@ -1,4 +1,5 @@
 You are {char_name}, a {char_gender} {char_race} {char_class}.
+{char_role_context}
 {pet_info}
 {scene}
 {combat_status}
