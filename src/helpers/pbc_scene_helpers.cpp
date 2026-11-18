@@ -12,9 +12,6 @@
 #include "GameTime.h"
 #include "DBCStores.h"
 #include "SpellInfo.h"
-#ifdef PBC_COA_CORE
-#include "SpellMgr.h"
-#endif
 #include "SpellAuraDefines.h"
 #include "SpellAuraEffects.h"
 #include "Group.h"
@@ -36,9 +33,14 @@
 #endif
 
 #ifdef PBC_COA_CORE
+#include "AscensionNecromancer.h"
 #include "ScriptMgr.h"
+#include "SpellMgr.h"
+#include "TemporarySummon.h"
 #include "Weather.h"
 #include "WorldPacket.h"
+#include <fmt/ranges.h>
+#include <map>
 #include <mutex>
 #endif
 
@@ -192,9 +194,9 @@ std::string PBC_BuildPlaceName(Player* player)
         if (!entry)
             break;
 
-        std::string name = std::string(PBC_DbcString(entry->area_name));
-        if (!name.empty())
-            names.push_back(name);
+        std::string name(PBC_DbcString(entry->area_name));
+        if (!name.empty() && (names.empty() || names.back() != name))
+            names.push_back(std::move(name));
 
         currentId = entry->zone;
     }
@@ -635,6 +637,33 @@ static std::string BuildCoaPetStr(Pet* pet)
     return PBC_Localize("Your {0} is by your side.", CoaPetDescription(pet));
 }
 
+static std::string CoaRaisedMinionList(Player* owner)
+{
+    std::map<std::string, unsigned> names;
+    for (Unit* controlled : owner->m_Controlled)
+    {
+        TempSummon const* minion = controlled ? controlled->ToTempSummon() : nullptr;
+        if (!minion || minion->IsPet() || !minion->IsInWorld() || !minion->IsAlive() ||
+            minion->IsDuringRemoveFromWorld() || !minion->IsInMap(owner) || !minion->InSamePhase(owner) ||
+            minion->GetSummonType() != TEMPSUMMON_DEAD_DESPAWN ||
+            !AscensionNecromancer::FollowsOwner(minion->GetEntry()) ||
+            !AscensionNecromancer::IsMinion(owner, minion, true))
+            continue;
+
+        std::string name = PBC_GetCreatureName(minion->GetEntry());
+        if (name.empty())
+            name = minion->GetName();
+        if (!name.empty())
+            ++names[name];
+    }
+
+    std::vector<std::string> labels;
+    labels.reserve(names.size());
+    for (auto const& [name, count] : names)
+        labels.push_back(count > 1 ? fmt::format("{} x{}", name, count) : name);
+    return fmt::format("{}", fmt::join(labels, ", "));
+}
+
 static std::string BuildMissingCoaPetStr(Player* owner)
 {
     constexpr uint32 houndmaster = 802233;
@@ -652,17 +681,22 @@ static std::string BuildMissingCoaPetStr(Player* owner)
         return PBC_Localize("You currently have no shadowhound at your side.");
     }
 
-    // A learned permanent pet spell is evidence of a companion the character can call.
+    // Only describe absent companions the character has a lasting summon spell for.
+    bool canCallPet = false;
     for (auto const& known : owner->GetSpellMap())
     {
         uint32 spellId = known.first;
         if (!owner->HasSpell(spellId))
             continue;
         SpellInfo const* spell = sSpellMgr->GetSpellInfo(spellId);
-        if (spell && !spell->IsPassive() && spell->HasEffect(SPELL_EFFECT_SUMMON_PET) && spell->GetDuration() <= 0)
-            return PBC_Localize("You currently have no summoned companion at your side.");
+        if (!spell || spell->IsPassive() || spell->GetDuration() > 0)
+            continue;
+        if (spell->HasEffect(SPELL_EFFECT_SUMMON) && AscensionNecromancer::Raised(spell))
+            return PBC_Localize("You currently have no raised minions at your side.");
+        if (spell->HasEffect(SPELL_EFFECT_SUMMON_PET))
+            canCallPet = true;
     }
-    return {};
+    return canCallPet ? PBC_Localize("You currently have no summoned companion at your side.") : std::string{};
 }
 #endif
 
@@ -714,9 +748,16 @@ std::string PBC_BuildPetInfoStr(Player* bot)
 #ifdef PBC_COA_CORE
     if (UsesCoaPetContext(bot))
     {
+        std::string context;
         if (Pet* pet = GetCoaPermanentPet(bot))
-            return BuildCoaPetStr(pet);
-        return BuildMissingCoaPetStr(bot);
+            context = BuildCoaPetStr(pet);
+        if (std::string minions = CoaRaisedMinionList(bot); !minions.empty())
+        {
+            if (!context.empty())
+                context += ' ';
+            context += PBC_Localize("Your raised minions ({0}) accompany you.", minions);
+        }
+        return context.empty() ? BuildMissingCoaPetStr(bot) : context;
     }
 #endif
 
@@ -782,13 +823,21 @@ std::string PBC_BuildPetInfoForMember(Player* member)
 #ifdef PBC_COA_CORE
     if (UsesCoaPetContext(member))
     {
-        Pet* pet = GetCoaPermanentPet(member);
-        if (!pet)
-            return "";
-        std::string description = CoaPetDescription(pet);
-        if (pet->isDead())
-            return PBC_Localize("{0} ({1}'s companion, seriously wounded)", description, member->GetName());
-        return PBC_Localize("{0} ({1}'s companion)", description, member->GetName());
+        std::string context;
+        if (Pet* pet = GetCoaPermanentPet(member))
+        {
+            std::string description = CoaPetDescription(pet);
+            context = pet->isDead()
+                ? PBC_Localize("{0} ({1}'s companion, seriously wounded)", description, member->GetName())
+                : PBC_Localize("{0} ({1}'s companion)", description, member->GetName());
+        }
+        if (std::string minions = CoaRaisedMinionList(member); !minions.empty())
+        {
+            if (!context.empty())
+                context += ", ";
+            context += PBC_Localize("{0} ({1}'s raised minions)", minions, member->GetName());
+        }
+        return context;
     }
 #endif
 
