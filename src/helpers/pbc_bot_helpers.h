@@ -5,7 +5,7 @@ class Player;
 class WorldSession;
 
 // ---------------------------------------------------------------------------
-// Bot detection helpers  (main-thread only)
+// Bot detection helpers
 //
 // The Playerbots and CoA cores expose their bot-session marker through
 // different WorldSession methods. Keep those differences in the implementation.
@@ -24,7 +24,9 @@ bool PBC_IsRealPlayerSession(WorldSession* sess);
 bool PBC_IsBot(Player* player);
 
 #ifdef PBC_COA_PLAYERBOTS
-// True if mod-coa-playerbots has this live character in its session roster.
+// Track the companion provider's socketless sessions at world-thread login and logout.
+void PBC_RegisterCoaCompanion(Player* player);
+void PBC_ForgetCoaCompanion(Player* player);
 bool PBC_IsCoaCompanion(Player* player);
 #endif
 

@@ -324,8 +324,11 @@ void PBC_PlayerEvents::OnPlayerCompleteQuest(Player* player, Quest const* quest)
 
 void PBC_PlayerEvents::OnPlayerLogin(Player* player)
 {
-    if (!g_PBC_Enable) return;
     if (!PBC_PTR_VALID(player)) return;
+#ifdef PBC_COA_PLAYERBOTS
+    PBC_RegisterCoaCompanion(player);
+#endif
+    if (!g_PBC_Enable) return;
 
     uint64_t guid = player->GetGUID().GetCounter();
     uint32_t accountId = sCharacterCache->GetCharacterAccountIdByGuid(ObjectGuid(guid));
@@ -337,6 +340,9 @@ void PBC_PlayerEvents::OnPlayerLogin(Player* player)
 void PBC_PlayerEvents::OnPlayerLogout(Player* player)
 {
     if (!PBC_PTR_VALID(player)) return;
+#ifdef PBC_COA_PLAYERBOTS
+    PBC_ForgetCoaCompanion(player);
+#endif
 #ifdef PBC_COA_CORE
     PBC_ForgetCoaWeather(player);
 #endif

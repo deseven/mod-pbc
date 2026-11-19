@@ -20,6 +20,7 @@ if(TARGET modules)
     if(TARGET coa AND "mod-coa-playerbots" IN_LIST STATIC_SCRIPT_MODULES
         AND EXISTS "${CMAKE_SOURCE_DIR}/modules/mod-coa-playerbots/src/BotMgr.h")
         set_property(SOURCE
+            "${CMAKE_CURRENT_LIST_DIR}/src/events/pbc_player_scripts.cpp"
             "${CMAKE_CURRENT_LIST_DIR}/src/helpers/pbc_bot_helpers.cpp"
             "${CMAKE_CURRENT_LIST_DIR}/src/helpers/pbc_scene_helpers.cpp"
             APPEND PROPERTY COMPILE_DEFINITIONS PBC_COA_PLAYERBOTS)
