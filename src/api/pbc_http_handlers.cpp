@@ -147,9 +147,15 @@ bool AuthenticateRequest(const httplib::Request& req, httplib::Response& res,
 
 Player* FindOnlinePlayerForAccount(uint32_t accountId)
 {
-    // Query characters DB for online characters on this account
+#ifdef PBC_COA_CORE
+    // CoA can have detached companions and a connected player on the same account.
+    // Logging a companion out can clear the database's account-wide online flags.
+    QueryResult result = CharacterDatabase.Query(
+        "SELECT guid FROM characters WHERE account = {}", accountId);
+#else
     QueryResult result = CharacterDatabase.Query(
         "SELECT guid FROM characters WHERE account = {} AND online = 1", accountId);
+#endif
     if (!result)
         return nullptr;
 
@@ -393,21 +399,15 @@ void HandleGetAccount(const httplib::Request& /*req*/, httplib::Response& res,
             uint8_t race      = (*result)[3].Get<uint8_t>();
             uint8_t cls       = (*result)[4].Get<uint8_t>();
             uint8_t level     = (*result)[5].Get<uint8_t>();
-            uint8_t online    = (*result)[6].Get<uint8_t>();
-
-            bool isOnline = (online == 1);
-            bool isPlayer = false;
-
-            if (isOnline)
-            {
-                // Check if this is a real player (not a bot)
-                Player* p = ObjectAccessor::FindPlayer(ObjectGuid(HighGuid::Player, guidLow));
-                if (p && p->IsInWorld())
-                {
-                    WorldSession* sess = p->GetSession();
-                    isPlayer = PBC_IsRealPlayerSession(sess);
-                }
-            }
+            ObjectGuid guid(HighGuid::Player, guidLow);
+#ifdef PBC_COA_CORE
+            Player* player = ObjectAccessor::FindPlayer(guid);
+            bool isOnline = player && player->IsInWorld();
+#else
+            bool isOnline = (*result)[6].Get<uint8_t>() == 1;
+            Player* player = isOnline ? ObjectAccessor::FindPlayer(guid) : nullptr;
+#endif
+            bool isPlayer = player && player->IsInWorld() && PBC_IsRealPlayerSession(player->GetSession());
 
             json charJson;
             charJson["guid"]      = guidLow;
