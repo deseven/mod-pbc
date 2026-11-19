@@ -82,9 +82,10 @@ if(TARGET modules)
     # Enable SSL/TLS support for HTTPS connections
     find_package(OpenSSL QUIET)
     if(OpenSSL_FOUND OR OPENSSL_FOUND)
-        # CoA partitions the static modules target on MSVC. Include paths from
-        # OpenSSL's imported targets do not reach those partitions.
-        set_property(SOURCE ${PBC_SOURCES} APPEND PROPERTY INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}")
+        if(MSVC AND TARGET coa)
+            # CoA's MSVC partitions compile separately from the target that links OpenSSL.
+            set_property(SOURCE ${PBC_SOURCES} APPEND PROPERTY INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}")
+        endif()
         set_property(SOURCE ${PBC_SOURCES} APPEND PROPERTY COMPILE_DEFINITIONS CPPHTTPLIB_OPENSSL_SUPPORT)
         target_link_libraries(modules PRIVATE OpenSSL::SSL OpenSSL::Crypto)
         message(STATUS "[mod-pbc] OpenSSL found - HTTPS support enabled")
