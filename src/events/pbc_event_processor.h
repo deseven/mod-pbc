@@ -1,6 +1,7 @@
 #ifndef MOD_PBC_EVENT_PROCESSOR_H
 #define MOD_PBC_EVENT_PROCESSOR_H
 
+#include <ctime>
 #include <string>
 #include <vector>
 #include "ObjectGuid.h"

@@ -1,5 +1,7 @@
 #include "pbc_item_helpers.h"
 #include "pbc_locales.h"
+#include <ctime>
+
 #include "ItemTemplate.h"
 #include "SharedDefines.h"
 
