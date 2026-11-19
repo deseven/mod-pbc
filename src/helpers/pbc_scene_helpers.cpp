@@ -197,7 +197,11 @@ std::string PBC_BuildPlaceName(Player* player)
             break;
 
         std::string name(PBC_DbcString(entry->area_name));
-        if (!name.empty() && (names.empty() || names.back() != name))
+#ifdef PBC_COA_CORE
+        if (!names.empty() && names.back() == name)
+            name.clear();
+#endif
+        if (!name.empty())
             names.push_back(std::move(name));
 
         currentId = entry->zone;
@@ -703,10 +707,10 @@ static std::string BuildMissingCoaPetStr(Player* owner)
         return PBC_Localize("You currently have no phoenix at your side.");
     if (HasAscensionPrimalistHunterPetContext(owner))
         return PBC_Localize("You currently have no pet at your side.");
-    constexpr uint32 primalSpiritTiger = 805947;
-    constexpr uint32 primalSpiritElemental = 806379;
-    if (owner->HasSpell(primalSpiritTiger) || owner->HasSpell(primalSpiritElemental))
-        return PBC_Localize("You currently have no summoned companion at your side.");
+    constexpr uint32 primalSpiritSpells[] = {805944, 805946, 805947, 806379}; // Hawk, Turtle, Tiger, Elemental
+    for (uint32 spell : primalSpiritSpells)
+        if (owner->HasSpell(spell))
+            return PBC_Localize("You currently have no summoned companion at your side.");
 
     constexpr uint32 houndmaster = 802233;
     constexpr uint32 houndmastersWhistle = 801343;
@@ -918,7 +922,7 @@ std::string PBC_BuildGroupStatusStr(Player* bot)
     auto memberInfo = [](Player* member) -> std::string {
         return member->GetName()
              + " (" + PBC_GenderStr(member->getGender())
-             + " " + PBC_RaceStr(member->getRace(true))
+             + " " + PBC_RaceStr(member)
              + " " + PBC_ClassStr(member->getClass()) + ")";
     };
 

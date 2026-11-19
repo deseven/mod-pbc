@@ -5,8 +5,10 @@
 #include "Group.h"
 #include "WorldSession.h"
 #include "SharedDefines.h"
+#ifdef PBC_COA_CORE
 #include "DBCStores.h"
 #include "SmartEnum.h"
+#endif
 #include "World.h"
 #include "ObjectMgr.h"
 #include "CreatureData.h"
@@ -468,15 +470,15 @@ std::string PBC_ClassStr(uint8_t cls)
         case CLASS_WARLOCK:      return PBC_Localize("Warlock");
         case CLASS_DRUID:        return PBC_Localize("Druid");
         default:
-        {
+#ifdef PBC_COA_CORE
             // CoA exposes its custom classes through the core's class enum metadata.
             if (cls >= MAX_CLASSES)
                 return PBC_Localize("Adventurer");
             auto playerClass = static_cast<Classes>(cls);
             if (EnumUtils::IsValid(playerClass))
                 return PBC_Localize(EnumUtils::ToString(playerClass).Title);
+#endif
             return PBC_Localize("Adventurer");
-        }
     }
 }
 
@@ -495,16 +497,25 @@ std::string PBC_RaceStr(uint8_t race)
         case RACE_BLOODELF:       return PBC_Localize("Blood Elf");
         case RACE_DRAENEI:        return PBC_Localize("Draenei");
         default:
-        {
+#ifdef PBC_COA_CORE
             if (ChrRacesEntry const* entry = sChrRacesStore.LookupEntry(race))
             {
                 std::string_view name = PBC_DbcString(entry->name);
                 if (!name.empty())
                     return std::string(name);
             }
+#endif
             return PBC_Localize("Unknown");
-        }
     }
+}
+
+std::string PBC_RaceStr(Player const* player)
+{
+#ifdef PBC_COA_CORE
+    return PBC_RaceStr(player->getRace(true));
+#else
+    return PBC_RaceStr(player->getRace());
+#endif
 }
 
 std::string PBC_GenderStr(uint8_t gender)

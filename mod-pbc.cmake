@@ -7,6 +7,7 @@ if(TARGET modules)
             "${CMAKE_CURRENT_LIST_DIR}/src/core/pbc_main.cpp"
             "${CMAKE_CURRENT_LIST_DIR}/src/events/pbc_player_scripts.cpp"
             "${CMAKE_CURRENT_LIST_DIR}/src/helpers/pbc_scene_helpers.cpp"
+            "${CMAKE_CURRENT_LIST_DIR}/src/helpers/pbc_utils.cpp"
             APPEND PROPERTY COMPILE_DEFINITIONS PBC_COA_CORE)
     endif()
 
