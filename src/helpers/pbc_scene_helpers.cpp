@@ -639,17 +639,34 @@ static std::string BuildCoaPetStr(Pet* pet)
     return PBC_Localize("Your {0} is by your side.", CoaPetDescription(pet));
 }
 
+static bool IsActiveCoaGuardian(Creature const* guardian, Player const* owner)
+{
+    return guardian && guardian->IsInWorld() && guardian->IsAlive() && !guardian->IsDuringRemoveFromWorld() &&
+        guardian->GetOwnerGUID() == owner->GetGUID() && guardian->IsInMap(owner) && guardian->InSamePhase(owner);
+}
+
 static Creature const* GetCoaPhoenix(Player* owner)
 {
     if (!AscensionPyromancer::Owner(owner))
         return nullptr;
 
     Creature const* phoenix = ObjectAccessor::GetCreature(*owner, AscensionPyromancer::State(owner).phoenix);
-    if (!phoenix || !phoenix->IsInWorld() || !phoenix->IsAlive() || phoenix->IsDuringRemoveFromWorld() ||
-        phoenix->GetOwnerGUID() != owner->GetGUID() || !phoenix->IsInMap(owner) || !phoenix->InSamePhase(owner))
+    return IsActiveCoaGuardian(phoenix, owner) ? phoenix : nullptr;
+}
+
+static Creature const* GetCoaPermanentGuardian(Player* owner)
+{
+    if (Creature const* phoenix = GetCoaPhoenix(owner))
+        return phoenix;
+
+    Guardian const* guardian = owner->GetGuardianPet();
+    if (!IsActiveCoaGuardian(guardian, owner) || guardian->IsPet() ||
+        guardian->GetSummonType() != TEMPSUMMON_DEAD_DESPAWN)
         return nullptr;
 
-    return phoenix;
+    // The core also uses the guardian pet slot for summons such as Primal Spirits.
+    SpellInfo const* spell = sSpellMgr->GetSpellInfo(guardian->GetUInt32Value(UNIT_CREATED_BY_SPELL));
+    return spell && spell->GetDuration() <= 0 && spell->HasEffect(SPELL_EFFECT_SUMMON) ? guardian : nullptr;
 }
 
 static std::string CoaRaisedMinionList(Player* owner)
@@ -686,6 +703,10 @@ static std::string BuildMissingCoaPetStr(Player* owner)
         return PBC_Localize("You currently have no phoenix at your side.");
     if (HasAscensionPrimalistHunterPetContext(owner))
         return PBC_Localize("You currently have no pet at your side.");
+    constexpr uint32 primalSpiritTiger = 805947;
+    constexpr uint32 primalSpiritElemental = 806379;
+    if (owner->HasSpell(primalSpiritTiger) || owner->HasSpell(primalSpiritElemental))
+        return PBC_Localize("You currently have no summoned companion at your side.");
 
     constexpr uint32 houndmaster = 802233;
     constexpr uint32 houndmastersWhistle = 801343;
@@ -772,8 +793,8 @@ std::string PBC_BuildPetInfoStr(Player* bot)
         std::string context;
         if (Pet* pet = GetCoaPermanentPet(bot))
             context = BuildCoaPetStr(pet);
-        else if (Creature const* phoenix = GetCoaPhoenix(bot))
-            context = PBC_Localize("Your {0} is by your side.", phoenix->GetName());
+        else if (Creature const* guardian = GetCoaPermanentGuardian(bot))
+            context = PBC_Localize("Your {0} is by your side.", guardian->GetName());
         if (std::string minions = CoaRaisedMinionList(bot); !minions.empty())
         {
             if (!context.empty())
@@ -854,8 +875,8 @@ std::string PBC_BuildPetInfoForMember(Player* member)
                 ? PBC_Localize("{0} ({1}'s companion, seriously wounded)", description, member->GetName())
                 : PBC_Localize("{0} ({1}'s companion)", description, member->GetName());
         }
-        else if (Creature const* phoenix = GetCoaPhoenix(member))
-            context = PBC_Localize("{0} ({1}'s companion)", phoenix->GetName(), member->GetName());
+        else if (Creature const* guardian = GetCoaPermanentGuardian(member))
+            context = PBC_Localize("{0} ({1}'s companion)", guardian->GetName(), member->GetName());
         if (std::string minions = CoaRaisedMinionList(member); !minions.empty())
         {
             if (!context.empty())
