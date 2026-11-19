@@ -81,6 +81,7 @@ static const PBC_LocaleMap deDE = {
     { "Your {0} is by your side.", "Dein Begleiter {0} ist an deiner Seite." },
     { "Your shadowhound is seriously wounded.", "Dein Schattenhund ist schwer verwundet." },
     { "You currently have no shadowhound at your side.", "Du hast momentan keinen Schattenhund an deiner Seite." },
+    { "You currently have no phoenix at your side.", "Du hast momentan keinen Phönix an deiner Seite." },
     { "You currently have no summoned companion at your side.", "Du hast momentan keinen beschworenen Begleiter an deiner Seite." },
     { "You currently have no raised minions at your side.", "Du hast momentan keine wiedererweckten Diener an deiner Seite." },
     { "Your raised minions ({0}) accompany you.", "Deine wiedererweckten Diener ({0}) begleiten dich." },

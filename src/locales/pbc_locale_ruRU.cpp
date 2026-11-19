@@ -81,6 +81,7 @@ static const PBC_LocaleMap ruRU = {
     { "Your {0} is by your side.", "Ваш спутник {0} рядом с вами." },
     { "Your shadowhound is seriously wounded.", "Ваша теневая гончая тяжело ранена." },
     { "You currently have no shadowhound at your side.", "Сейчас рядом с вами нет теневой гончей." },
+    { "You currently have no phoenix at your side.", "Сейчас рядом с вами нет феникса." },
     { "You currently have no summoned companion at your side.", "Сейчас рядом с вами нет призванного спутника." },
     { "You currently have no raised minions at your side.", "Сейчас рядом с вами нет восставших прислужников." },
     { "Your raised minions ({0}) accompany you.", "Ваши восставшие прислужники ({0}) сопровождают вас." },

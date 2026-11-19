@@ -34,6 +34,8 @@
 
 #ifdef PBC_COA_CORE
 #include "AscensionNecromancer.h"
+#include "AscensionPrimalistSpiritBeast.h"
+#include "AscensionPyromancer.h"
 #include "ScriptMgr.h"
 #include "SpellMgr.h"
 #include "TemporarySummon.h"
@@ -637,6 +639,19 @@ static std::string BuildCoaPetStr(Pet* pet)
     return PBC_Localize("Your {0} is by your side.", CoaPetDescription(pet));
 }
 
+static Creature const* GetCoaPhoenix(Player* owner)
+{
+    if (!AscensionPyromancer::Owner(owner))
+        return nullptr;
+
+    Creature const* phoenix = ObjectAccessor::GetCreature(*owner, AscensionPyromancer::State(owner).phoenix);
+    if (!phoenix || !phoenix->IsInWorld() || !phoenix->IsAlive() || phoenix->IsDuringRemoveFromWorld() ||
+        phoenix->GetOwnerGUID() != owner->GetGUID() || !phoenix->IsInMap(owner) || !phoenix->InSamePhase(owner))
+        return nullptr;
+
+    return phoenix;
+}
+
 static std::string CoaRaisedMinionList(Player* owner)
 {
     std::map<std::string, unsigned> names;
@@ -666,6 +681,12 @@ static std::string CoaRaisedMinionList(Player* owner)
 
 static std::string BuildMissingCoaPetStr(Player* owner)
 {
+    constexpr uint32 phoenixEgg = 800796;
+    if (AscensionPyromancer::Owner(owner) && owner->HasSpell(phoenixEgg))
+        return PBC_Localize("You currently have no phoenix at your side.");
+    if (HasAscensionPrimalistHunterPetContext(owner))
+        return PBC_Localize("You currently have no pet at your side.");
+
     constexpr uint32 houndmaster = 802233;
     constexpr uint32 houndmastersWhistle = 801343;
     constexpr uint32 shadowhoundEntry = 50124;
@@ -751,6 +772,8 @@ std::string PBC_BuildPetInfoStr(Player* bot)
         std::string context;
         if (Pet* pet = GetCoaPermanentPet(bot))
             context = BuildCoaPetStr(pet);
+        else if (Creature const* phoenix = GetCoaPhoenix(bot))
+            context = PBC_Localize("Your {0} is by your side.", phoenix->GetName());
         if (std::string minions = CoaRaisedMinionList(bot); !minions.empty())
         {
             if (!context.empty())
@@ -831,6 +854,8 @@ std::string PBC_BuildPetInfoForMember(Player* member)
                 ? PBC_Localize("{0} ({1}'s companion, seriously wounded)", description, member->GetName())
                 : PBC_Localize("{0} ({1}'s companion)", description, member->GetName());
         }
+        else if (Creature const* phoenix = GetCoaPhoenix(member))
+            context = PBC_Localize("{0} ({1}'s companion)", phoenix->GetName(), member->GetName());
         if (std::string minions = CoaRaisedMinionList(member); !minions.empty())
         {
             if (!context.empty())
