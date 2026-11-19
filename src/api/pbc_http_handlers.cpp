@@ -46,7 +46,7 @@ static const char* HttpGenderStr(uint8_t gender)
     }
 }
 
-static const char* HttpRaceStr(uint8_t race)
+static std::string HttpRaceStr(uint8_t race)
 {
     switch (race)
     {
@@ -60,11 +60,16 @@ static const char* HttpRaceStr(uint8_t race)
         case RACE_TROLL:          return "Troll";
         case RACE_BLOODELF:       return "Blood Elf";
         case RACE_DRAENEI:        return "Draenei";
-        default:                  return "Unknown";
+        default:
+#ifdef PBC_COA_CORE
+            return PBC_RaceStr(race);
+#else
+            return "Unknown";
+#endif
     }
 }
 
-static const char* HttpClassStr(uint8_t cls)
+static std::string HttpClassStr(uint8_t cls)
 {
     switch (cls)
     {
@@ -78,7 +83,12 @@ static const char* HttpClassStr(uint8_t cls)
         case CLASS_MAGE:         return "Mage";
         case CLASS_WARLOCK:      return "Warlock";
         case CLASS_DRUID:        return "Druid";
-        default:                 return "Unknown";
+        default:
+#ifdef PBC_COA_CORE
+            if (IsAscensionClass(cls) || cls == CLASS_HERO)
+                return PBC_ClassStr(cls);
+#endif
+            return "Unknown";
     }
 }
 
