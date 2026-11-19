@@ -26,15 +26,18 @@ if(TARGET modules)
             APPEND PROPERTY COMPILE_DEFINITIONS PBC_COA_PLAYERBOTS)
     endif()
 
-    # Optional mod_weather_vibe integration
-    if(NOT "${MODULE_MOD_WEATHER_VIBE}" STREQUAL "disabled" AND EXISTS "${CMAKE_SOURCE_DIR}/modules/mod_weather_vibe/src/core/mod_wv_core.h")
-        target_compile_definitions(modules PRIVATE MOD_WEATHER_VIBE)
-        target_include_directories(modules PRIVATE
-            "${CMAKE_SOURCE_DIR}/modules/mod_weather_vibe/src/core")
-        message(STATUS "[mod-pbc] mod_weather_vibe found and enabled - weather integration enabled")
-    else()
-        message(STATUS "[mod-pbc] mod_weather_vibe not found or disabled - weather integration disabled")
-    endif()
+    # Weather Vibe's installation guide uses the hyphenated directory name.
+    foreach(PBC_WEATHER_MODULE IN ITEMS mod-weather-vibe mod_weather_vibe)
+        set(PBC_WEATHER_INCLUDE "${CMAKE_SOURCE_DIR}/modules/${PBC_WEATHER_MODULE}/src/core")
+        if(PBC_WEATHER_MODULE IN_LIST STATIC_SCRIPT_MODULES AND EXISTS "${PBC_WEATHER_INCLUDE}/mod_wv_core.h")
+            set_property(SOURCE "${CMAKE_CURRENT_LIST_DIR}/src/helpers/pbc_scene_helpers.cpp"
+                APPEND PROPERTY COMPILE_DEFINITIONS MOD_WEATHER_VIBE)
+            set_property(SOURCE "${CMAKE_CURRENT_LIST_DIR}/src/helpers/pbc_scene_helpers.cpp"
+                APPEND PROPERTY INCLUDE_DIRECTORIES "${PBC_WEATHER_INCLUDE}")
+            message(STATUS "[mod-pbc] Using Weather Vibe from ${PBC_WEATHER_MODULE}")
+            break()
+        endif()
+    endforeach()
     # Include nlohmann/json library
     if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/deps/nlohmann/json.hpp")
         set_property(SOURCE ${PBC_SOURCES} APPEND PROPERTY INCLUDE_DIRECTORIES "${CMAKE_CURRENT_LIST_DIR}/deps")
