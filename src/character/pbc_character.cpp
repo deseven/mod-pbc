@@ -43,9 +43,10 @@ PBC_VarMap PBC_BuildVarMap(Player* bot, const std::string& event)
 
     vars["char_name"]   = bot->GetName();
     vars["char_gender"] = PBC_GenderStr(bot->getGender());
-    vars["char_race"]   = PBC_RaceStr(bot->getRace());
+    vars["char_race"]   = PBC_RaceStr(bot);
     vars["char_class"]  = PBC_ClassStr(bot->getClass());
     vars["char_role"]   = PBC_RoleStr(bot);
+    vars["char_role_context"] = PBC_CombatRoleContext(vars["char_role"]);
     vars["char_level"]  = std::to_string(bot->GetLevel());
     { uint32 m = bot->GetMoney(); vars["char_gold"] = std::to_string(m / 10000) + "g " + std::to_string((m % 10000) / 100) + "s"; }
     vars["scene"]        = PBC_BuildSceneStr(bot);
@@ -69,6 +70,7 @@ PBC_VarMap PBC_BuildVarMapFromSnapshot(const PBC_CharacterSnapshot& snap, const 
     vars["char_race"]   = snap.charRace;
     vars["char_class"]  = snap.charClass;
     vars["char_role"]   = snap.charRole;
+    vars["char_role_context"] = PBC_CombatRoleContext(snap.charRole);
     vars["char_level"]  = snap.charLevel;
     vars["char_gold"]   = snap.charGold;
     vars["scene"]        = snap.scene;
@@ -748,7 +750,7 @@ PBC_CharacterSnapshot PBC_SnapshotCharacter(Player* bot)
 
     // Capture raw template variables
     snap.charGender   = PBC_GenderStr(bot->getGender());
-    snap.charRace     = PBC_RaceStr(bot->getRace());
+    snap.charRace     = PBC_RaceStr(bot);
     snap.charClass    = PBC_ClassStr(bot->getClass());
     snap.charRole     = PBC_RoleStr(bot);
     snap.charLevel    = std::to_string(bot->GetLevel());
@@ -813,7 +815,7 @@ std::string PBC_BuildTargetInfo(const std::string& name)
         return upper;
 
     std::string gender = p->getGender() == GENDER_FEMALE ? "FEMALE" : "MALE";
-    std::string race   = PBC_RaceStr(p->getRace());
+    std::string race   = PBC_RaceStr(p);
     std::transform(race.begin(), race.end(), race.begin(), ::toupper);
     std::string cls    = PBC_ClassStr(p->getClass());
     std::transform(cls.begin(), cls.end(), cls.begin(), ::toupper);

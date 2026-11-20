@@ -19,8 +19,35 @@
 #include "SharedDefines.h"
 #include <fmt/core.h>
 
+#ifdef PBC_COA_PLAYERBOTS
+#include "BotAI.h"
+#include "pbc_bot_helpers.h"
+#endif
+
+#ifdef PBC_COA_SQUIDBOTS
+#include "PlayerbotAI.h"
+#endif
+
 #ifdef MOD_WEATHER_VIBE
 #include "mod_wv_core.h"
+#endif
+
+#ifdef PBC_COA_CORE
+#include "AscensionNecromancer.h"
+#include "AscensionPrimalistSpiritBeast.h"
+#include "AscensionPyromancer.h"
+#include "ScriptMgr.h"
+#include "SpellMgr.h"
+#include "TemporarySummon.h"
+#include "Weather.h"
+#include "WorldPacket.h"
+#include <fmt/ranges.h>
+#include <map>
+#include <mutex>
+#endif
+
+#if defined(MOD_WEATHER_VIBE) || defined(PBC_COA_CORE)
+#include <optional>
 #endif
 
 #include <ctime>
@@ -52,7 +79,78 @@ static std::string TimeOfDayLabel()
     return PBC_Localize("early night");
 }
 
+#ifdef PBC_COA_CORE
+namespace
+{
+struct CoaWeatherObservation
+{
+    uint32 mapId;
+    uint32 instanceId;
+    uint32 zoneId;
+    WeatherState state;
+};
+
+std::mutex coaWeatherMutex;
+std::unordered_map<ObjectGuid, CoaWeatherObservation> coaWeather;
+
+class PBC_CoaWeatherScript final : public PlayerbotScript
+{
+public:
+    PBC_CoaWeatherScript() : PlayerbotScript("PBC_CoaWeatherScript") { }
+
+    void OnPlayerbotPacketSent(Player* player, WorldPacket const* packet) override
+    {
+        // This hook also receives packets for socketless bot sessions.
+        if (packet->GetOpcode() != SMSG_WEATHER || !player || !player->IsInWorld() ||
+            packet->size() < sizeof(uint32))
+            return;
+
+        CoaWeatherObservation observation{
+            player->GetMapId(), player->GetInstanceId(), player->GetZoneId(),
+            static_cast<WeatherState>(packet->read<uint32>(0))
+        };
+        std::lock_guard lock(coaWeatherMutex);
+        coaWeather.insert_or_assign(player->GetGUID(), observation);
+    }
+};
+}
+
+void PBC_RegisterCoaWeatherScript()
+{
+    new PBC_CoaWeatherScript();
+}
+
+void PBC_ForgetCoaWeather(Player* player)
+{
+    std::lock_guard lock(coaWeatherMutex);
+    coaWeather.erase(player->GetGUID());
+}
+#endif
+
+#if defined(MOD_WEATHER_VIBE) || defined(PBC_COA_CORE)
+static std::optional<WeatherState> SceneWeather(Player* bot)
+{
+    uint32 zoneId = bot->GetZoneId();
 #ifdef MOD_WEATHER_VIBE
+    if (sWeatherVibeCore.IsEnabled())
+    {
+        auto const& lastApplied = sWeatherVibeCore.GetLastApplied();
+        auto it = lastApplied.find(zoneId);
+        if (it != lastApplied.end() && it->second.hasValue)
+            return it->second.state;
+    }
+#endif
+
+#ifdef PBC_COA_CORE
+    std::lock_guard lock(coaWeatherMutex);
+    auto it = coaWeather.find(bot->GetGUID());
+    if (it != coaWeather.end() && it->second.zoneId == zoneId &&
+        it->second.mapId == bot->GetMapId() && it->second.instanceId == bot->GetInstanceId())
+        return it->second.state;
+#endif
+    return std::nullopt;
+}
+
 // Returns the weather clause to append after the time-of-day, e.g.
 // "it's foggy", "it's raining lightly", "there is a heavy sandstorm".
 // For WEATHER_STATE_FINE (clear sky) returns "the weather is fine" to
@@ -98,9 +196,13 @@ std::string PBC_BuildPlaceName(Player* player)
         if (!entry)
             break;
 
-        std::string name = std::string(PBC_DbcString(entry->area_name));
+        std::string name(PBC_DbcString(entry->area_name));
+#ifdef PBC_COA_CORE
+        if (!names.empty() && names.back() == name)
+            name.clear();
+#endif
         if (!name.empty())
-            names.push_back(name);
+            names.push_back(std::move(name));
 
         currentId = entry->zone;
     }
@@ -276,32 +378,23 @@ std::string PBC_BuildSceneStr(Player* bot)
 {
     std::string timeLabel = TimeOfDayLabel();
 
-    // Build the time/weather suffix (lowercase, no trailing period — it will be
-    // appended after a comma inside a larger sentence).
-    std::string timeWeather;
+    std::string timeWeather = PBC_Localize("it's ") + timeLabel;
 
-#ifdef MOD_WEATHER_VIBE
-    if (bot && sWeatherVibeCore.IsEnabled())
+#if defined(MOD_WEATHER_VIBE) || defined(PBC_COA_CORE)
+    if (bot)
     {
-        uint32 zoneId = bot->GetZoneId();
-        auto const& lastApplied = sWeatherVibeCore.GetLastApplied();
-        auto it = lastApplied.find(zoneId);
-        if (it != lastApplied.end() && it->second.hasValue)
+        if (auto state = SceneWeather(bot))
         {
-            std::string clause = WeatherClause(it->second.state);
+            std::string clause = WeatherClause(*state);
             if (!clause.empty())
             {
-                timeWeather = PBC_Localize("it's ") + timeLabel + PBC_Localize(" and ") + clause;
-                // When indoors and weather is not fine, note that the character is sheltered
-                if (!bot->IsOutdoors() && it->second.state != WEATHER_STATE_FINE)
+                timeWeather += PBC_Localize(" and ") + clause;
+                if (!bot->IsOutdoors() && *state != WEATHER_STATE_FINE)
                     timeWeather += PBC_Localize(", but you are inside and sheltered from the weather", bot->getGender());
             }
         }
     }
 #endif
-
-    if (timeWeather.empty())
-        timeWeather = PBC_Localize("it's ") + timeLabel;
 
     // --- Taxi flight ---
     if (bot && bot->IsInFlight())
@@ -343,6 +436,27 @@ std::string PBC_BuildSceneStr(Player* bot)
 
 std::string PBC_RoleStr(Player* bot)
 {
+#ifdef PBC_COA_PLAYERBOTS
+    if (PBC_IsCoaCompanion(bot))
+    {
+        switch (BotAI::GetRole(bot->GetGUID()))
+        {
+            case BotRole::Tank:    return PBC_Localize("tank");
+            case BotRole::Healer:  return PBC_Localize("healer");
+            case BotRole::Dps:     return PBC_Localize("DPS");
+            case BotRole::Support: return PBC_Localize("support");
+        }
+    }
+#endif
+#ifdef PBC_COA_SQUIDBOTS
+    if (PlayerbotAI::IsTank(bot, true))
+        return PBC_Localize("tank");
+    if (PlayerbotAI::IsHeal(bot, true))
+        return PBC_Localize("healer");
+    return PlayerbotAI::IsRanged(bot, true) ? PBC_Localize("ranged DPS") : PBC_Localize("melee DPS");
+#elif defined(PBC_COA_CORE)
+    return {};
+#else
     switch (bot->getClass())
     {
         case CLASS_WARRIOR:      return bot->GetSpec() == 2 ? PBC_Localize("tank") : PBC_Localize("melee DPS");
@@ -357,6 +471,18 @@ std::string PBC_RoleStr(Player* bot)
         case CLASS_DRUID:        return PBC_Localize("druid");
         default:                 return PBC_Localize("adventurer");
     }
+#endif
+}
+
+std::string PBC_CombatRoleContext(std::string const& role)
+{
+#if defined(PBC_COA_SQUIDBOTS) || defined(PBC_COA_PLAYERBOTS)
+    if (!role.empty())
+        return PBC_Localize("Your combat role is {0}.", role);
+#else
+    (void)role;
+#endif
+    return {};
 }
 
 // ---------------------------------------------------------------------------
@@ -466,6 +592,160 @@ static std::string GetHunterPetFamilyName(Pet* pet)
     return std::string(familyName);
 }
 
+static std::string BuildHunterPetStr(Pet* pet)
+{
+    std::string family = GetHunterPetFamilyName(pet);
+    std::string const& name = pet->GetName();
+    switch (pet->GetHappinessState())
+    {
+        case HAPPY:   return PBC_Localize("Your {0} {1} is by your side, happy and alert.", family, name);
+        case CONTENT: return PBC_Localize("Your {0} {1} is by your side, content.", family, name);
+        default:      return PBC_Localize("Your {0} {1} is by your side, but seems unhappy.", family, name);
+    }
+}
+
+#ifdef PBC_COA_CORE
+static bool UsesCoaPetContext(Player* owner)
+{
+    uint8 cls = owner->getClass();
+    return IsAscensionClass(cls) || cls == CLASS_HERO;
+}
+
+static Pet* GetCoaPermanentPet(Player* owner)
+{
+    Pet* pet = owner->GetPet();
+    if (!pet || !pet->IsInWorld() || pet->isTemporarySummoned() ||
+        pet->GetOwnerGUID() != owner->GetGUID() || !pet->IsPermanentPetFor(owner))
+        return nullptr;
+    return pet;
+}
+
+static std::string CoaPetDescription(Pet* pet)
+{
+    if (pet->getPetType() == HUNTER_PET)
+        return GetHunterPetFamilyName(pet) + " " + pet->GetName();
+
+    std::string kind = PBC_GetCreatureName(pet->GetEntry());
+    std::string const& name = pet->GetName();
+    if (kind.empty())
+        return name;
+    if (name.empty() || name == kind || name == pet->GetCreatureTemplate()->Name)
+        return kind;
+    return PBC_Localize("{0} named {1}", kind, name);
+}
+
+static std::string BuildCoaPetStr(Pet* pet)
+{
+    if (pet->isDead())
+        return PBC_Localize("Your {0} is seriously wounded.", CoaPetDescription(pet));
+    if (pet->getPetType() == HUNTER_PET)
+        return BuildHunterPetStr(pet);
+    return PBC_Localize("Your {0} is by your side.", CoaPetDescription(pet));
+}
+
+static bool IsActiveCoaGuardian(Creature const* guardian, Player const* owner)
+{
+    return guardian && guardian->IsInWorld() && guardian->IsAlive() && !guardian->IsDuringRemoveFromWorld() &&
+        guardian->GetOwnerGUID() == owner->GetGUID() && guardian->IsInMap(owner) && guardian->InSamePhase(owner);
+}
+
+static Creature const* GetCoaPhoenix(Player* owner)
+{
+    if (!AscensionPyromancer::Owner(owner))
+        return nullptr;
+
+    Creature const* phoenix = ObjectAccessor::GetCreature(*owner, AscensionPyromancer::State(owner).phoenix);
+    return IsActiveCoaGuardian(phoenix, owner) ? phoenix : nullptr;
+}
+
+static Creature const* GetCoaPermanentGuardian(Player* owner)
+{
+    if (Creature const* phoenix = GetCoaPhoenix(owner))
+        return phoenix;
+
+    Guardian const* guardian = owner->GetGuardianPet();
+    if (!IsActiveCoaGuardian(guardian, owner) || guardian->IsPet() ||
+        guardian->GetSummonType() != TEMPSUMMON_DEAD_DESPAWN)
+        return nullptr;
+
+    // The core also uses the guardian pet slot for summons such as Primal Spirits.
+    SpellInfo const* spell = sSpellMgr->GetSpellInfo(guardian->GetUInt32Value(UNIT_CREATED_BY_SPELL));
+    return spell && spell->GetDuration() <= 0 && spell->HasEffect(SPELL_EFFECT_SUMMON) ? guardian : nullptr;
+}
+
+static std::string CoaRaisedMinionList(Player* owner)
+{
+    std::map<std::string, unsigned> names;
+    for (Unit* controlled : owner->m_Controlled)
+    {
+        TempSummon const* minion = controlled ? controlled->ToTempSummon() : nullptr;
+        if (!minion || minion->IsPet() || !minion->IsInWorld() || !minion->IsAlive() ||
+            minion->IsDuringRemoveFromWorld() || !minion->IsInMap(owner) || !minion->InSamePhase(owner) ||
+            minion->GetSummonType() != TEMPSUMMON_DEAD_DESPAWN ||
+            !AscensionNecromancer::FollowsOwner(minion->GetEntry()) ||
+            !AscensionNecromancer::IsMinion(owner, minion, true))
+            continue;
+
+        std::string name = PBC_GetCreatureName(minion->GetEntry());
+        if (name.empty())
+            name = minion->GetName();
+        if (!name.empty())
+            ++names[name];
+    }
+
+    std::vector<std::string> labels;
+    labels.reserve(names.size());
+    for (auto const& [name, count] : names)
+        labels.push_back(count > 1 ? fmt::format("{} x{}", name, count) : name);
+    return fmt::format("{}", fmt::join(labels, ", "));
+}
+
+static std::string BuildMissingCoaPetStr(Player* owner)
+{
+    constexpr uint32 phoenixEgg = 800796;
+    if (AscensionPyromancer::Owner(owner) && owner->HasSpell(phoenixEgg))
+        return PBC_Localize("You currently have no phoenix at your side.");
+    if (HasAscensionPrimalistHunterPetContext(owner))
+        return PBC_Localize("You currently have no pet at your side.");
+    constexpr uint32 primalSpiritSpells[] = {805944, 805946, 805947, 806379}; // Hawk, Turtle, Tiger, Elemental
+    for (uint32 spell : primalSpiritSpells)
+        if (owner->HasSpell(spell))
+            return PBC_Localize("You currently have no summoned companion at your side.");
+
+    constexpr uint32 houndmaster = 802233;
+    constexpr uint32 houndmastersWhistle = 801343;
+    constexpr uint32 shadowhoundEntry = 50124;
+    if (owner->getClass() == CLASS_WITCH_HUNTER &&
+        (owner->HasSpell(houndmaster) || owner->HasSpell(houndmastersWhistle)))
+    {
+        if (PetStable const* stable = owner->GetPetStable())
+        {
+            auto const* hound = Pet::GetLoadPetInfo(*stable, shadowhoundEntry, 0, false).first;
+            if (hound && !hound->Health)
+                return PBC_Localize("Your shadowhound is seriously wounded.");
+        }
+        return PBC_Localize("You currently have no shadowhound at your side.");
+    }
+
+    // Only describe absent companions the character has a lasting summon spell for.
+    bool canCallPet = false;
+    for (auto const& known : owner->GetSpellMap())
+    {
+        uint32 spellId = known.first;
+        if (!owner->HasSpell(spellId))
+            continue;
+        SpellInfo const* spell = sSpellMgr->GetSpellInfo(spellId);
+        if (!spell || spell->IsPassive() || spell->GetDuration() > 0)
+            continue;
+        if (spell->HasEffect(SPELL_EFFECT_SUMMON) && AscensionNecromancer::Raised(spell))
+            return PBC_Localize("You currently have no raised minions at your side.");
+        if (spell->HasEffect(SPELL_EFFECT_SUMMON_PET))
+            canCallPet = true;
+    }
+    return canCallPet ? PBC_Localize("You currently have no summoned companion at your side.") : std::string{};
+}
+#endif
+
 // Build the alive-pet string for the owner (pet_info variable).
 static std::string BuildAlivePetStr(Player* bot, Pet* pet)
 {
@@ -474,21 +754,7 @@ static std::string BuildAlivePetStr(Player* bot, Pet* pet)
     switch (bot->getClass())
     {
         case CLASS_HUNTER:
-        {
-            std::string family = GetHunterPetFamilyName(pet);
-
-            HappinessState happiness = pet->GetHappinessState();
-            switch (happiness)
-            {
-                case HAPPY:
-                    return PBC_Localize("Your {0} {1} is by your side, happy and alert.", family, petName);
-                case CONTENT:
-                    return PBC_Localize("Your {0} {1} is by your side, content.", family, petName);
-                case UNHAPPY:
-                default:
-                    return PBC_Localize("Your {0} {1} is by your side, but seems unhappy.", family, petName);
-            }
-        }
+            return BuildHunterPetStr(pet);
         case CLASS_WARLOCK:
         {
             std::string demonType = GetDemonTypeName(pet->GetEntry());
@@ -524,6 +790,24 @@ static std::string BuildDeadPetStr(Player* bott, Pet* pet)
 std::string PBC_BuildPetInfoStr(Player* bot)
 {
     if (!bot) return "";
+
+#ifdef PBC_COA_CORE
+    if (UsesCoaPetContext(bot))
+    {
+        std::string context;
+        if (Pet* pet = GetCoaPermanentPet(bot))
+            context = BuildCoaPetStr(pet);
+        else if (Creature const* guardian = GetCoaPermanentGuardian(bot))
+            context = PBC_Localize("Your {0} is by your side.", guardian->GetName());
+        if (std::string minions = CoaRaisedMinionList(bot); !minions.empty())
+        {
+            if (!context.empty())
+                context += ' ';
+            context += PBC_Localize("Your raised minions ({0}) accompany you.", minions);
+        }
+        return context.empty() ? BuildMissingCoaPetStr(bot) : context;
+    }
+#endif
 
     // Only handle pet classes
     if (!IsPetClass(bot))
@@ -584,6 +868,29 @@ std::string PBC_BuildPetInfoForMember(Player* member)
 {
     if (!member) return "";
 
+#ifdef PBC_COA_CORE
+    if (UsesCoaPetContext(member))
+    {
+        std::string context;
+        if (Pet* pet = GetCoaPermanentPet(member))
+        {
+            std::string description = CoaPetDescription(pet);
+            context = pet->isDead()
+                ? PBC_Localize("{0} ({1}'s companion, seriously wounded)", description, member->GetName())
+                : PBC_Localize("{0} ({1}'s companion)", description, member->GetName());
+        }
+        else if (Creature const* guardian = GetCoaPermanentGuardian(member))
+            context = PBC_Localize("{0} ({1}'s companion)", guardian->GetName(), member->GetName());
+        if (std::string minions = CoaRaisedMinionList(member); !minions.empty())
+        {
+            if (!context.empty())
+                context += ", ";
+            context += PBC_Localize("{0} ({1}'s raised minions)", minions, member->GetName());
+        }
+        return context;
+    }
+#endif
+
     // Only handle pet classes
     if (!IsPetClass(member))
         return "";
@@ -615,7 +922,7 @@ std::string PBC_BuildGroupStatusStr(Player* bot)
     auto memberInfo = [](Player* member) -> std::string {
         return member->GetName()
              + " (" + PBC_GenderStr(member->getGender())
-             + " " + PBC_RaceStr(member->getRace())
+             + " " + PBC_RaceStr(member)
              + " " + PBC_ClassStr(member->getClass()) + ")";
     };
 

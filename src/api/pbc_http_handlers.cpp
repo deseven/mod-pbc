@@ -46,7 +46,7 @@ static const char* HttpGenderStr(uint8_t gender)
     }
 }
 
-static const char* HttpRaceStr(uint8_t race)
+static std::string HttpRaceStr(uint8_t race)
 {
     switch (race)
     {
@@ -60,11 +60,16 @@ static const char* HttpRaceStr(uint8_t race)
         case RACE_TROLL:          return "Troll";
         case RACE_BLOODELF:       return "Blood Elf";
         case RACE_DRAENEI:        return "Draenei";
-        default:                  return "Unknown";
+        default:
+#ifdef PBC_COA_CORE
+            return PBC_RaceStr(race);
+#else
+            return "Unknown";
+#endif
     }
 }
 
-static const char* HttpClassStr(uint8_t cls)
+static std::string HttpClassStr(uint8_t cls)
 {
     switch (cls)
     {
@@ -78,7 +83,12 @@ static const char* HttpClassStr(uint8_t cls)
         case CLASS_MAGE:         return "Mage";
         case CLASS_WARLOCK:      return "Warlock";
         case CLASS_DRUID:        return "Druid";
-        default:                 return "Unknown";
+        default:
+#ifdef PBC_COA_CORE
+            if (IsAscensionClass(cls) || cls == CLASS_HERO)
+                return PBC_ClassStr(cls);
+#endif
+            return "Unknown";
     }
 }
 
@@ -137,9 +147,15 @@ bool AuthenticateRequest(const httplib::Request& req, httplib::Response& res,
 
 Player* FindOnlinePlayerForAccount(uint32_t accountId)
 {
-    // Query characters DB for online characters on this account
+#ifdef PBC_COA_CORE
+    // CoA can have detached companions and a connected player on the same account.
+    // Logging a companion out can clear the database's account-wide online flags.
+    QueryResult result = CharacterDatabase.Query(
+        "SELECT guid FROM characters WHERE account = {}", accountId);
+#else
     QueryResult result = CharacterDatabase.Query(
         "SELECT guid FROM characters WHERE account = {} AND online = 1", accountId);
+#endif
     if (!result)
         return nullptr;
 
@@ -383,21 +399,15 @@ void HandleGetAccount(const httplib::Request& /*req*/, httplib::Response& res,
             uint8_t race      = (*result)[3].Get<uint8_t>();
             uint8_t cls       = (*result)[4].Get<uint8_t>();
             uint8_t level     = (*result)[5].Get<uint8_t>();
-            uint8_t online    = (*result)[6].Get<uint8_t>();
-
-            bool isOnline = (online == 1);
-            bool isPlayer = false;
-
-            if (isOnline)
-            {
-                // Check if this is a real player (not a bot)
-                Player* p = ObjectAccessor::FindPlayer(ObjectGuid(HighGuid::Player, guidLow));
-                if (p && p->IsInWorld())
-                {
-                    WorldSession* sess = p->GetSession();
-                    isPlayer = PBC_IsRealPlayerSession(sess);
-                }
-            }
+            ObjectGuid guid(HighGuid::Player, guidLow);
+#ifdef PBC_COA_CORE
+            Player* player = ObjectAccessor::FindPlayer(guid);
+            bool isOnline = player && player->IsInWorld();
+#else
+            bool isOnline = (*result)[6].Get<uint8_t>() == 1;
+            Player* player = isOnline ? ObjectAccessor::FindPlayer(guid) : nullptr;
+#endif
+            bool isPlayer = player && player->IsInWorld() && PBC_IsRealPlayerSession(player->GetSession());
 
             json charJson;
             charJson["guid"]      = guidLow;
@@ -563,9 +573,17 @@ void HandleGetCharCard(const httplib::Request& req, httplib::Response& res,
         PBC_VarMap vars;
         vars["char_name"]   = cacheEntry->Name;
         vars["char_gender"] = PBC_GenderStr(cacheEntry->Sex);
-        vars["char_race"]   = PBC_RaceStr(cacheEntry->Race);
         vars["char_class"]  = PBC_ClassStr(cacheEntry->Class);
+        vars["char_role_context"] = "";
         vars["char_level"]  = std::to_string(cacheEntry->Level);
+
+        uint8_t race = cacheEntry->Race;
+#ifdef PBC_COA_CORE
+        // CoA's character cache can hold the gameplay race instead of the saved race.
+        if (QueryResult result = CharacterDatabase.Query("SELECT race FROM characters WHERE guid = {}", charGuid))
+            race = (*result)[0].Get<uint8_t>();
+#endif
+        vars["char_race"]   = PBC_RaceStr(race);
 
         PBC_SubstituteFromMap(cardText, vars, false);
         PBC_CleanUnknownTokens(cardText);

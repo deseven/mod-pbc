@@ -135,6 +135,9 @@ std::string PBC_ClassStr(uint8_t cls);
 // Convert race ID to human-readable name (e.g. RACE_HUMAN → "Human").
 std::string PBC_RaceStr(uint8_t race);
 
+class Player;
+std::string PBC_RaceStr(Player const* player);
+
 // Convert gender ID to human-readable name (GENDER_FEMALE → "female", else "male").
 std::string PBC_GenderStr(uint8_t gender);
 

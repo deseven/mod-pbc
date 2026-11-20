@@ -25,7 +25,7 @@ The module supports multiple languages based on the server's `DBC.Locale` settin
 
 ## Installation
 
-Since mod-playerbots is an obvious hard requirement, follow their [Installation Guide](https://github.com/mod-playerbots/mod-playerbots/wiki/Installation-Guide) until you have a working acore installation with playerbots enabled.
+For stock AzerothCore, follow the [mod-playerbots installation guide](https://github.com/mod-playerbots/mod-playerbots/wiki/Installation-Guide) to set up a working server with playerbots. Conquest of Azeroth users can follow the [CoA setup](#conquest-of-azeroth) below.
 
 There are three ways to obtain the module sources:
 
@@ -69,14 +69,24 @@ This gives you the most recent commits from the `main` branch. You can `git pull
 After obtaining the sources using any of the methods above, rebuild the server normally.
 
 > [!NOTE]
-> The module includes bundled copies of [nlohmann/json](https://github.com/nlohmann/json) in `deps/nlohmann/json.hpp` and [yhirose/cpp-httplib](https://github.com/yhirose/cpp-httplib) in `deps/yhirose/cpp-httplib/httplib.h`, so no external libraries are required.
+> The module bundles [nlohmann/json](https://github.com/nlohmann/json) in `deps/nlohmann/json.hpp` and [yhirose/cpp-httplib](https://github.com/yhirose/cpp-httplib) in `deps/yhirose/cpp-httplib/httplib.h`. HTTPS model connections require OpenSSL at build time.
 
 If [mod_weather_vibe](https://github.com/hermensbas/mod_weather_vibe) is also installed, weather states from it will be included in the character's scene description.
 
 
+### Conquest of Azeroth
+
+`mod-pbc` supports [Conquest of Azeroth](https://github.com/Conquest-of-AzerothCore/azerothcore-wotlk-coa) with CoA Companions or SQUID Playerbots. CoA Custom Races is optional, and class names in character context follow the server's active DBC locale.
+
+1. Add a version of `mod-pbc` that includes CoA support under `modules/mod-pbc` in a working CoA source checkout. Build `worldserver` with `mod-pbc` and your bot provider as static modules (`-DMODULES=static`).
+2. Install the resulting `worldserver` and copy `conf/playerbots_characters.conf.dist` from the module to the server's module config directory as `playerbots_characters.conf`. In a CoA Windows repack this directory is `Core/configs/modules/`. For CoA Companions, set `CoaBots.Enable = 1` in `mod_coa_playerbots.conf`. For SQUID Playerbots, set `AiPlayerbot.Enabled = 1` in `playerbots.conf`.
+3. Let the AzerothCore updater apply the module's character database scripts at startup. Keep character database updates enabled in `Updates.EnableDatabases`. If you moved the source checkout after building, set `SourceDirectory` in `worldserver.conf` to its current path. For manual updates, initialize a new installation with `data/sql/characters/base/init.sql`, then apply the unapplied scripts under `data/sql/characters/updates/` in filename order to the characters database.
+4. Set `PBC.Enable = 1` in `playerbots_characters.conf` and point `PBC.DefaultConnection` to your [model connection file](docs/CONNECTIONS.md). If the server runs from a separate directory, use absolute paths for the connection file, `PBC.PromptsPath`, and `PBC.CharacterCardsPath`.
+5. Start the server and run `.chars connection-test` with a GM account. Summon a companion with your bot provider and whisper it to try dialogue. Run `.chars context <companion name>` to inspect its identity and current context. You can also [opt in to combat-role text](docs/PROMPTS.md#coa-combat-role) in a custom prompt.
+
 ## Configuration
 
-Copy `env/dist/etc/modules/playerbots_characters.conf.dist` as `env/dist/etc/modules/playerbots_characters.conf` and adjust it as needed.
+Copy `playerbots_characters.conf.dist` to `playerbots_characters.conf` in your server's module config directory. For an AzerothCore source installation this is typically `env/dist/etc/modules/`.
 
 
 ### Model Connection Setup

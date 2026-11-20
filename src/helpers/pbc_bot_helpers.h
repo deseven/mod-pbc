@@ -5,15 +5,10 @@ class Player;
 class WorldSession;
 
 // ---------------------------------------------------------------------------
-// Bot detection helpers  (main-thread only)
+// Bot detection helpers
 //
-// Single source of truth for "is this character controlled by mod-playerbots?".
-//
-// Currently backed by WorldSession::IsHeadless(): mod-playerbots is the only
-// code in this codebase that creates socket-less sessions, so a headless
-// session is a bot session.  If that assumption ever changes (for example,
-// switching to GET_PLAYERBOT_AI), update the implementation in
-// pbc_bot_helpers.cpp — every call site goes through these helpers.
+// The Playerbots and CoA cores expose their bot-session marker through
+// different WorldSession methods. Keep those differences in the implementation.
 //
 // All helpers are null-safe: an invalid/null session or player is treated as
 // "not a bot" (and therefore "not a real player" either).
@@ -27,5 +22,12 @@ bool PBC_IsRealPlayerSession(WorldSession* sess);
 
 // True if 'player' is a playerbot.
 bool PBC_IsBot(Player* player);
+
+#ifdef PBC_COA_PLAYERBOTS
+// Track the companion provider's socketless sessions at world-thread login and logout.
+void PBC_RegisterCoaCompanion(Player* player);
+void PBC_ForgetCoaCompanion(Player* player);
+bool PBC_IsCoaCompanion(Player* player);
+#endif
 
 #endif // MOD_PBC_BOT_HELPERS_H
