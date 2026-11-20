@@ -22,9 +22,14 @@ prompts/
 └── ...
 ```
 
-The module tries `<PBC.PromptsPath>/<DBC.Locale>/` first. If that directory doesn't exist, it falls back to `<PBC.PromptsPath>/enUS/`.
+The module looks in the server's active locale directory and the `enUS/` fallback directory. For each prompt, it searches in this order.
 
-To localise your prompts, copy the files from `enUS/` into a new locale directory (e.g. `deDE/`), translate them, and reload the module.
+1. Active locale `.custom.txt`
+2. English `.custom.txt`
+3. Active locale `.default.txt`
+4. English `.default.txt`
+
+To customise a translation, place the translated `.custom.txt` file in the active locale directory and reload the module.
 
 
 ## How It Works
@@ -42,6 +47,15 @@ If any prompt fails to load (file not found, access error, etc.), the module is 
 4. Reload the module with `.chars reload` in-game or from the server console.
 
 Your custom file will not be overwritten by module updates. To revert to the default prompt, simply delete your `.custom.txt` file and reload.
+
+
+### CoA combat role
+
+Add `{char_role_context}` to a custom prompt if you want a CoA companion to know its combat role, such as support or ranged DPS.
+
+1. In your active locale's prompt directory under `PBC.PromptsPath`, create `CharacterContext.custom.txt` from `CharacterContext.default.txt` if you do not already have a custom copy.
+2. Add `{char_role_context}` on its own line and run `.chars reload`.
+3. With the companion online, run `.chars context <companion name>` to check the result.
 
 
 ## Prompt Files
@@ -77,7 +91,7 @@ These variables can be used in most prompts and character cards. It's recommende
 - `{char_race}` — race of the character in game
 - `{char_class}` — class of the character in game
 - `{char_role}` — character role
-- `{char_role_context}` — localized sentence describing a companion's assigned combat role on CoA. For example, “Your combat role is support.” It expands to an empty string when the companion has no role or the server uses stock AzerothCore. To opt in, copy your locale's `CharacterContext.default.txt` to `CharacterContext.custom.txt`, add `{char_role_context}` on its own line, and run `.chars reload`.
+- `{char_role_context}` — localized combat-role sentence for CoA companions, such as “Your combat role is support.” It expands to an empty string on stock AzerothCore or when a role is unavailable. See [CoA combat role](#coa-combat-role) to enable it in a custom prompt.
 - `{char_level}` — level of the character in game
 - `{char_gold}` — amount of character's money
 - `{scene}` — human-readable description of the character's current situation: travel state, location, time of day, and weather (if `mod_weather_vibe` is active). For example "You are currently on foot in Undercity, it's evening." or "You are currently riding Gray Kodo in The Barrens, it's noon." or "You are currently flying to Crossroads, it's morning." or "You are currently on foot in Gadgetzan (Tanaris), it's early evening and it's raining lightly."
