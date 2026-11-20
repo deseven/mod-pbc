@@ -573,10 +573,17 @@ void HandleGetCharCard(const httplib::Request& req, httplib::Response& res,
         PBC_VarMap vars;
         vars["char_name"]   = cacheEntry->Name;
         vars["char_gender"] = PBC_GenderStr(cacheEntry->Sex);
-        vars["char_race"]   = PBC_RaceStr(cacheEntry->Race);
         vars["char_class"]  = PBC_ClassStr(cacheEntry->Class);
         vars["char_role_context"] = "";
         vars["char_level"]  = std::to_string(cacheEntry->Level);
+
+        uint8_t race = cacheEntry->Race;
+#ifdef PBC_COA_CORE
+        // CoA's character cache can hold the gameplay race instead of the saved race.
+        if (QueryResult result = CharacterDatabase.Query("SELECT race FROM characters WHERE guid = {}", charGuid))
+            race = (*result)[0].Get<uint8_t>();
+#endif
+        vars["char_race"]   = PBC_RaceStr(race);
 
         PBC_SubstituteFromMap(cardText, vars, false);
         PBC_CleanUnknownTokens(cardText);

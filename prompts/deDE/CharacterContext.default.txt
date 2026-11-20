@@ -1,5 +1,4 @@
 Du bist {char_name}, ein {char_race} {char_class}, dein Geschlecht ist {char_gender}.
-{char_role_context}
 {pet_info}
 {scene}
 {combat_status}

@@ -77,6 +77,7 @@ These variables can be used in most prompts and character cards. It's recommende
 - `{char_race}` — race of the character in game
 - `{char_class}` — class of the character in game
 - `{char_role}` — character role
+- `{char_role_context}` — localized sentence describing a companion's assigned combat role on CoA. For example, “Your combat role is support.” It expands to an empty string when the companion has no role or the server uses stock AzerothCore. To opt in, copy your locale's `CharacterContext.default.txt` to `CharacterContext.custom.txt`, add `{char_role_context}` on its own line, and run `.chars reload`.
 - `{char_level}` — level of the character in game
 - `{char_gold}` — amount of character's money
 - `{scene}` — human-readable description of the character's current situation: travel state, location, time of day, and weather (if `mod_weather_vibe` is active). For example "You are currently on foot in Undercity, it's evening." or "You are currently riding Gray Kodo in The Barrens, it's noon." or "You are currently flying to Crossroads, it's morning." or "You are currently on foot in Gadgetzan (Tanaris), it's early evening and it's raining lightly."

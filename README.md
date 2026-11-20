@@ -25,7 +25,7 @@ The module supports multiple languages based on the server's `DBC.Locale` settin
 
 ## Installation
 
-Since mod-playerbots is an obvious hard requirement, follow their [Installation Guide](https://github.com/mod-playerbots/mod-playerbots/wiki/Installation-Guide) until you have a working acore installation with playerbots enabled.
+For stock AzerothCore, follow the [mod-playerbots installation guide](https://github.com/mod-playerbots/mod-playerbots/wiki/Installation-Guide) to set up a working server with playerbots. Conquest of Azeroth users can follow the [CoA setup](#conquest-of-azeroth) below.
 
 There are three ways to obtain the module sources:
 
@@ -73,6 +73,15 @@ After obtaining the sources using any of the methods above, rebuild the server n
 
 If [mod_weather_vibe](https://github.com/hermensbas/mod_weather_vibe) is also installed, weather states from it will be included in the character's scene description.
 
+
+### Conquest of Azeroth
+
+`mod-pbc` supports [Conquest of Azeroth](https://github.com/Conquest-of-AzerothCore/azerothcore-wotlk-coa) with CoA Companions or SQUID Playerbots.
+
+1. Start with a working CoA source checkout and your chosen bot provider. Put `mod-pbc` in the server source's `modules` directory using one of the methods above, then build CoA with the bot provider and `mod-pbc` as static modules.
+2. Use the resulting worldserver and the matching module configuration and assets. Let the server updater apply the module's character database scripts at startup. If your deployment manages database updates separately, use the scripts under `data/sql/characters` to initialize a new module installation and apply its migrations.
+3. Enable `PBC.Enable` and configure a model connection as described below. Set `PBC.PromptsPath` and `PBC.CharacterCardsPath` if you keep those files outside the source tree.
+4. Start the server, summon a companion with your bot provider, and test the connection with `.chars connection-test`. Use `.chars context <companion name>` to inspect the companion's context in game.
 
 ## Configuration
 
